@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link2, Loader2, MessageCircle, RefreshCw, X } from "lucide-react";
+import { Bell, BellOff, Link2, Loader2, MessageCircle, RefreshCw, X } from "lucide-react";
 import { useAuth } from "./hooks/useAuth";
 import { useChat } from "./hooks/useChat";
+import { useNotifications } from "./hooks/useNotifications";
+import { messagePreview } from "./utils/format";
 import { acceptInvite, captureInviteFromUrl, clearPendingInvite } from "./lib/invites";
 import { avatarColor, avatarOf, displayName } from "./utils/format";
 import AuthScreen from "./components/AuthScreen";
@@ -23,7 +25,26 @@ function CenteredCard({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const auth = useAuth();
-  const chat = useChat(auth.me);
+  const notifications = useNotifications();
+  // Ref để callback thông báo luôn thấy trạng thái mới nhất mà không cần tạo lại
+  const activeIdRef = useRef<string | null>(null);
+  const openFromNotification = useRef<((id: string) => void) | null>(null);
+
+  const chat = useChat(auth.me, {
+    onIncomingMessage: (message, senderName) => {
+      // Đang mở đúng box chat đó và đang nhìn vào app thì không cần báo
+      const looking =
+        document.visibilityState === "visible" && document.hasFocus();
+      if (looking && message.conversationId === activeIdRef.current) return;
+
+      notifications.notify({
+        title: senderName,
+        body: messagePreview(message, ""),
+        tag: message.conversationId,
+        onClick: () => openFromNotification.current?.(message.conversationId),
+      });
+    },
+  });
 
   const [showProfile, setShowProfile] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
@@ -67,6 +88,19 @@ export default function App() {
         setPendingInvite(null);
       });
   }, [myId, pendingInvite, refreshChat, openConversation]);
+
+  useEffect(() => {
+    activeIdRef.current = chat.activeId;
+  }, [chat.activeId]);
+
+  useEffect(() => {
+    openFromNotification.current = chat.openConversation;
+  }, [chat.openConversation]);
+
+  // Hiện số tin chưa đọc ngay trên tiêu đề tab
+  useEffect(() => {
+    document.title = chat.totalUnread > 0 ? `(${chat.totalUnread}) Nhắn tin` : "Nhắn tin";
+  }, [chat.totalUnread]);
 
   const handleRefresh = useCallback(async () => {
     if (refreshing) return;
@@ -154,6 +188,35 @@ export default function App() {
               <Link2 size={16} />
               Link mời
             </button>
+
+            {notifications.supported && (
+              <button
+                onClick={() => {
+                  if (notifications.permission === "granted") notifications.toggle();
+                  else void notifications.request();
+                }}
+                className={`p-2 rounded-xl hover:bg-slate-100 ${
+                  notifications.permission === "granted" && notifications.enabled
+                    ? "text-indigo-500"
+                    : "text-slate-400"
+                }`}
+                title={
+                  notifications.permission === "denied"
+                    ? "Trình duyệt đang chặn thông báo của trang này"
+                    : notifications.permission === "granted"
+                      ? notifications.enabled
+                        ? "Đang bật thông báo tin nhắn mới"
+                        : "Đang tắt thông báo tin nhắn mới"
+                      : "Bật thông báo tin nhắn mới"
+                }
+              >
+                {notifications.permission === "granted" && notifications.enabled ? (
+                  <Bell size={17} />
+                ) : (
+                  <BellOff size={17} />
+                )}
+              </button>
+            )}
 
             <button
               onClick={() => void handleRefresh()}

@@ -31,6 +31,14 @@ interface SendOptions {
   replyTo?: ChatMessage | null;
 }
 
+export interface ChatOptions {
+  /**
+   * Gọi khi có tin nhắn mới từ người khác (kể cả khi đang ở box chat khác).
+   * App dùng để bật thông báo trình duyệt.
+   */
+  onIncomingMessage?: (message: ChatMessage, senderName: string) => void;
+}
+
 export interface ChatState {
   conversations: Conversation[];
   conversationsLoading: boolean;
@@ -74,7 +82,7 @@ function clearQuoteOf(message: ChatMessage, recalledId: string): ChatMessage {
   return { ...message, replyTo: { ...message.replyTo, recalled: true, body: undefined } };
 }
 
-export function useChat(me: ChatUser | null): ChatState {
+export function useChat(me: ChatUser | null, options: ChatOptions = {}): ChatState {
   const myId = me?.id ?? "";
   const enabled = !!me;
 
@@ -89,7 +97,11 @@ export function useChat(me: ChatUser | null): ChatState {
 
   const activeIdRef = useRef<string | null>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
+  const conversationsRef = useRef<Conversation[]>([]);
   const pendingBlobUrls = useRef<string[]>([]);
+  // Giữ callback trong ref để không phải đăng ký lại kênh realtime mỗi lần render
+  const onIncomingRef = useRef(options.onIncomingMessage);
+  const onIncomingMessage = options.onIncomingMessage;
 
   useEffect(() => {
     activeIdRef.current = activeId;
@@ -98,6 +110,14 @@ export function useChat(me: ChatUser | null): ChatState {
   useEffect(() => {
     messagesRef.current = rawMessages;
   }, [rawMessages]);
+
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
+
+  useEffect(() => {
+    onIncomingRef.current = onIncomingMessage;
+  }, [onIncomingMessage]);
 
   useEffect(() => {
     const urls = pendingBlobUrls.current;
@@ -274,6 +294,12 @@ export function useChat(me: ChatUser | null): ChatState {
         }
         // Báo "đã nhận" kể cả khi đang ở box chat khác
         void markDelivered(row.conversation_id, myId).catch(() => undefined);
+
+        const conversation = conversationsRef.current.find((c) => c.id === row.conversation_id);
+        onIncomingRef.current?.(
+          dbMessageToApp(row, myId),
+          conversation?.partner?.displayName ?? "Tin nhắn mới"
+        );
       },
       (_conversationId, userId) => {
         // Ai đó vừa dùng link mời của mình → box chat mới xuất hiện ngay
