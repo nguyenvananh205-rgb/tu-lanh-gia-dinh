@@ -91,8 +91,11 @@ export default function ConversationList({ chat, me, onInvite }: Props) {
                     {messagePreview(conversation.lastMessage, me.id)}
                   </span>
                   {conversation.unreadCount > 0 && (
-                    <span className="flex-shrink-0 min-w-[18px] h-[18px] px-1 bg-indigo-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center">
-                      {conversation.unreadCount > 9 ? "9+" : conversation.unreadCount}
+                    <span
+                      className="flex-shrink-0 min-w-[20px] h-5 px-1.5 bg-indigo-500 text-white rounded-full text-[11px] font-bold flex items-center justify-center"
+                      title={`${conversation.unreadCount} tin chưa đọc`}
+                    >
+                      {conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}
                     </span>
                   )}
                 </div>

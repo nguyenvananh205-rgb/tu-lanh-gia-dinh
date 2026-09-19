@@ -76,6 +76,12 @@ function quoteOf(message?: ChatMessage | null): MessageQuote | null {
   };
 }
 
+/** Người dùng có đang thực sự nhìn vào app không (tab hiện + cửa sổ đang focus) */
+function isLooking(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.visibilityState === "visible" && document.hasFocus();
+}
+
 /** Tin nhắn bị thu hồi thì khung trả lời trỏ tới nó cũng mất nội dung */
 function clearQuoteOf(message: ChatMessage, recalledId: string): ChatMessage {
   if (!message.replyTo || message.replyTo.id !== recalledId) return message;
@@ -186,8 +192,37 @@ export function useChat(me: ChatUser | null, options: ChatOptions = {}): ChatSta
 
   useEffect(() => {
     if (!enabled || !activeId) return;
-    void markConversationRead(activeId);
+    if (isLooking()) void markConversationRead(activeId);
   }, [enabled, activeId, markConversationRead]);
+
+  // Quay lại app (chuyển tab / focus cửa sổ) → mới tính là đã đọc box đang mở,
+  // và nếu đã rời đi lâu thì nạp lại danh sách để số tin chưa đọc chắc chắn đúng
+  useEffect(() => {
+    if (!enabled) return;
+    let hiddenAt: number | null = null;
+
+    const markActiveRead = () => {
+      const conversationId = activeIdRef.current;
+      if (conversationId && isLooking()) void markConversationRead(conversationId);
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+        return;
+      }
+      if (hiddenAt && Date.now() - hiddenAt > 30_000) void loadConversations();
+      hiddenAt = null;
+      markActiveRead();
+    };
+
+    window.addEventListener("focus", markActiveRead);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("focus", markActiveRead);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [enabled, markConversationRead, loadConversations]);
 
   // ── Realtime cho hội thoại đang mở ────────────────────────────
   const upsertMessage = useCallback((message: ChatMessage) => {
@@ -225,7 +260,8 @@ export function useChat(me: ChatUser | null, options: ChatOptions = {}): ChatSta
           }
         }
         upsertMessage(message);
-        if (row.sender_id !== myId) void markConversationRead(activeId);
+        // Đang mở box này nhưng không nhìn vào app thì vẫn coi là chưa đọc
+        if (row.sender_id !== myId && isLooking()) void markConversationRead(activeId);
       },
       onUpdate: (row) => {
         const message = dbMessageToApp(row, myId);
@@ -278,7 +314,9 @@ export function useChat(me: ChatUser | null, options: ChatOptions = {}): ChatSta
                     lastMessage: dbMessageToApp(row, myId),
                     lastMessageAt: row.created_at,
                     unreadCount:
-                      activeIdRef.current === row.conversation_id ? 0 : c.unreadCount + 1,
+                      activeIdRef.current === row.conversation_id && isLooking()
+                        ? 0
+                        : c.unreadCount + 1,
                   }
                 : c
             )

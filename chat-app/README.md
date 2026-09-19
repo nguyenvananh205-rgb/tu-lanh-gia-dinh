@@ -25,6 +25,14 @@ có nút **Link mới** để thu hồi link cũ.
 mà app xin hộ, và RLS chỉ cấp cho thành viên của đúng box chat chứa file đó — kể cả có URL
 cũ trong tay cũng hết hạn.
 
+## Số tin nhắn chưa đọc
+
+Mỗi box chat trong danh sách có badge số tin chưa đọc (đếm chính xác tới 99), header hiện
+tổng số. Số này được tính lại từ database mỗi lần mở app, cộng dồn theo thời gian thực khi
+có tin mới, và chỉ về 0 khi bạn **thật sự đang xem** box chat đó (tab đang hiện và cửa sổ
+đang focus) — để ngoài tab thì tin vẫn nằm im là chưa đọc, người gửi cũng chưa thấy "Đã xem".
+Rời app lâu rồi quay lại, danh sách tự nạp lại để số liệu chắc chắn đúng.
+
 ## Thông báo tin nhắn mới
 
 Nút chuông trên header xin quyền Notification của trình duyệt. Khi có tin nhắn đến mà bạn
