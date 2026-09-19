@@ -310,9 +310,23 @@ create policy "message_hides_own" on public.message_hides
   for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 -- ── Realtime ─────────────────────────────────────────────────────
-alter publication supabase_realtime add table public.messages;
-alter publication supabase_realtime add table public.conversation_members;
-alter publication supabase_realtime add table public.conversations;
+-- Thêm bảng vào publication, bỏ qua bảng đã có (để chạy lại file này được)
+do $$
+declare t text;
+begin
+  if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    create publication supabase_realtime;
+  end if;
+
+  foreach t in array array['messages', 'conversation_members', 'conversations'] loop
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
+    ) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
+end $$;
 
 -- ── Storage: ảnh / video / voice ─────────────────────────────────
 insert into storage.buckets (id, name, public, file_size_limit)

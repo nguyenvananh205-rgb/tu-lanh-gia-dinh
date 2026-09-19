@@ -95,6 +95,12 @@ supabase/schema.sql          Bảng, RLS, trigger, hàm accept_invite, bucket ch
 - Người nhận mở hội thoại → `last_read_at` → **Đã xem** (✓✓ xanh).
 - Gửi lỗi (mất mạng, upload hỏng) → **Gửi lỗi** kèm nút **Gửi lại**.
 
+## Kiểm thử schema
+
+`supabase/tests/` có bộ kiểm thử chạy trên Postgres cục bộ (không cần project
+Supabase): trigger sinh tên không trùng, luồng link mời, và toàn bộ ràng buộc RLS.
+Xem `supabase/tests/README.md`.
+
 ## Giới hạn hiện tại
 
 - Bucket `chat-media` để public (đường dẫn chứa UUID ngẫu nhiên). Cần kín hơn thì đổi bucket
