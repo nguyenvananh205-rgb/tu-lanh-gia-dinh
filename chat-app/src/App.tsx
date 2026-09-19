@@ -45,14 +45,23 @@ export default function App() {
     if (!myId || !pendingInvite || handledInvite.current === pendingInvite) return;
     handledInvite.current = pendingInvite;
 
-    acceptInvite(pendingInvite)
+    const token = pendingInvite;
+    acceptInvite(token)
       .then(async (conversationId) => {
         await refreshChat();
         openConversation(conversationId);
         setInviteMessage("Đã mở box chat từ link mời");
+        clearPendingInvite();
+        setPendingInvite(null);
       })
-      .catch((err: Error) => setInviteMessage(err.message))
-      .finally(() => {
+      .catch((err: Error) => {
+        setInviteMessage(err.message);
+        // Lỗi mạng thì giữ lại link mời để lần mở app sau tự thử lại;
+        // link hết hạn / bị thu hồi / của chính mình thì bỏ luôn.
+        if (/failed to fetch|network|timeout|load failed/i.test(err.message)) {
+          handledInvite.current = null;
+          return;
+        }
         clearPendingInvite();
         setPendingInvite(null);
       });
