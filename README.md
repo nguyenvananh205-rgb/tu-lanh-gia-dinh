@@ -1,3 +1,14 @@
+# Tủ lạnh gia đình
+
+Ứng dụng quản lý thực phẩm tủ lạnh, kế hoạch bữa ăn, danh sách mua sắm và
+**nhắn tin 1-1 giữa các thành viên trong nhà** (React + TypeScript + Vite + Supabase).
+
+- Cấu hình Supabase: `supabase/schema.sql`
+- Chức năng nhắn tin: chạy thêm `supabase/messaging-schema.sql`, chi tiết ở
+  [`docs/messaging.md`](docs/messaging.md)
+
+---
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
