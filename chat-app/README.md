@@ -80,6 +80,31 @@ Trên Supabase:
 Thử nhắn tin giữa 2 người: đăng ký 2 tài khoản ở 2 trình duyệt (hoặc một cửa sổ ẩn danh),
 bên A bấm **Mở box chat mới bằng link** → copy link → bên B mở link đó.
 
+## Đưa app cho người dùng thật
+
+App là web tĩnh (`npm run build` ra thư mục `dist`), deploy lên Vercel / Netlify /
+Cloudflare Pages đều được, không cần server riêng. Nếu deploy vào đường dẫn con
+(ví dụ GitHub Pages `/ten-repo/`) thì đặt thêm `base: '/ten-repo/'` trong `vite.config.ts`.
+
+Checklist trước khi gửi link cho người khác:
+
+- [ ] **Auth → URL Configuration**: đặt **Site URL** và **Redirect URLs** đúng domain đã
+      deploy. Bỏ qua bước này thì link đặt lại mật khẩu trong email sẽ trỏ về `localhost`.
+- [ ] **SMTP riêng** (Resend, SendGrid, Gmail SMTP…) nếu dùng quên mật khẩu hoặc bật
+      "Confirm email": bộ gửi mail mặc định của Supabase chỉ vài email mỗi giờ và chỉ dành
+      cho lúc thử nghiệm.
+- [ ] **Confirm email**: mở cho người lạ thì nên bật (chặn đăng ký email rác) — nhớ làm
+      SMTP trước.
+- [ ] **Dung lượng**: gói Supabase miễn phí có hạn mức database / storage / băng thông,
+      mà mỗi file cho phép tới 25 MB. Đông người dùng thì hạ `file_size_limit` của bucket
+      `chat-media` hoặc lên gói trả phí.
+- [ ] **Chạy thử một vòng thật**: đăng ký 2 tài khoản → gửi link mời → nhắn text, ảnh,
+      voice, sticker → sửa / thu hồi / xóa → kiểm tra "đã xem" và số tin chưa đọc → quên
+      mật khẩu → đổi mật khẩu.
+
+Chưa có (cân nhắc nếu mở rộng ra người lạ): xoá tài khoản & dữ liệu theo yêu cầu, chặn /
+báo cáo người dùng, giới hạn tần suất gửi tin nhắn, và sao lưu dữ liệu.
+
 ## Cấu trúc
 
 ```

@@ -149,12 +149,15 @@ create table if not exists public.chat_invites (
 create index if not exists chat_invites_owner_idx on public.chat_invites (owner_id);
 
 -- ── Hàm phụ trợ (security definer để RLS không bị đệ quy) ────────
-create or replace function public.is_conversation_member(conv uuid, uid uuid default auth.uid())
+-- Chỉ hỏi được "TÔI có ở trong box chat này không" — không cho truyền user khác
+-- để không ai dò được quan hệ của người lạ.
+drop function if exists public.is_conversation_member(uuid, uuid);
+create or replace function public.is_conversation_member(conv uuid)
 returns boolean
 language sql security definer stable set search_path = public as $$
   select exists (
     select 1 from public.conversation_members m
-    where m.conversation_id = conv and m.user_id = uid
+    where m.conversation_id = conv and m.user_id = auth.uid()
   );
 $$;
 
