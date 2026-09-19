@@ -5,6 +5,7 @@ import { useChat } from "./hooks/useChat";
 import { acceptInvite, captureInviteFromUrl, clearPendingInvite } from "./lib/invites";
 import { avatarColor, avatarOf, displayName } from "./utils/format";
 import AuthScreen from "./components/AuthScreen";
+import ResetPasswordScreen from "./components/ResetPasswordScreen";
 import ConversationList from "./components/ConversationList";
 import ChatThread from "./components/ChatThread";
 import InviteDialog from "./components/InviteDialog";
@@ -102,6 +103,11 @@ export default function App() {
         <p className="text-sm text-slate-400 mt-3">Đang tải...</p>
       </CenteredCard>
     );
+  }
+
+  // ── Mở link đặt lại mật khẩu từ email ─────────────────────────
+  if (auth.recoveryMode) {
+    return <ResetPasswordScreen auth={auth} />;
   }
 
   // ── Chưa đăng nhập ────────────────────────────────────────────
@@ -239,6 +245,7 @@ export default function App() {
             setShowProfile(false);
           }}
           onSave={auth.updateProfile}
+          onChangePassword={auth.changePassword}
           onSignOut={() => {
             setShowProfile(false);
             void auth.signOut();

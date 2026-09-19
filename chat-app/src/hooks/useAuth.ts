@@ -3,14 +3,17 @@ import type { Session } from "@supabase/supabase-js";
 import type { ChatUser } from "../types";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import {
+  changePassword as dbChangePassword,
   createFallbackProfile,
   DisplayNameTakenError,
   getMyProfile,
+  requestPasswordReset as dbRequestPasswordReset,
   signIn as dbSignIn,
   signOut as dbSignOut,
   signUp as dbSignUp,
   touchLastSeen,
   updateMyProfile,
+  updatePassword as dbUpdatePassword,
 } from "../lib/users";
 
 export interface AuthState {
@@ -21,10 +24,17 @@ export interface AuthState {
   me: ChatUser | null;
   error: string | null;
   notice: string | null;
+  /** Đang mở link "đặt lại mật khẩu" từ email */
+  recoveryMode: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (displayName: string, avatarEmoji: string) => Promise<boolean>;
+  requestPasswordReset: (email: string) => Promise<boolean>;
+  /** Đặt mật khẩu mới trong luồng quên mật khẩu */
+  updatePassword: (newPassword: string) => Promise<boolean>;
+  /** Đổi mật khẩu khi đang đăng nhập (cần mật khẩu hiện tại) */
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   clearMessages: () => void;
 }
 
@@ -42,6 +52,12 @@ function friendlyError(message: string): string {
   if (m.includes("rate limit") || m.includes("too many")) {
     return "Bạn thao tác hơi nhanh, thử lại sau ít phút";
   }
+  if (m.includes("new password should be different")) {
+    return "Mật khẩu mới phải khác mật khẩu cũ";
+  }
+  if (m.includes("auth session missing") || m.includes("session expired")) {
+    return "Link đặt lại mật khẩu đã hết hạn, hãy gửi lại email";
+  }
   return message;
 }
 
@@ -51,6 +67,7 @@ export function useAuth(): AuthState {
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [recoveryMode, setRecoveryMode] = useState(false);
 
   const loadProfile = useCallback(async (current: Session | null) => {
     if (!current?.user) {
@@ -78,7 +95,9 @@ export function useAuth(): AuthState {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, next) => {
+    } = supabase.auth.onAuthStateChange((event, next) => {
+      // Mở link trong email đặt lại mật khẩu → vào màn đặt mật khẩu mới
+      if (event === "PASSWORD_RECOVERY") setRecoveryMode(true);
       setSession(next);
       void loadProfile(next);
     });
@@ -145,6 +164,51 @@ export function useAuth(): AuthState {
     [session]
   );
 
+  const requestPasswordReset = useCallback(async (email: string) => {
+    setError(null);
+    setNotice(null);
+    try {
+      await dbRequestPasswordReset(email);
+      setNotice("Đã gửi email đặt lại mật khẩu. Hãy kiểm tra hộp thư của bạn.");
+      return true;
+    } catch (err) {
+      setError(friendlyError((err as Error).message));
+      return false;
+    }
+  }, []);
+
+  const updatePassword = useCallback(async (newPassword: string) => {
+    setError(null);
+    setNotice(null);
+    try {
+      await dbUpdatePassword(newPassword);
+      setRecoveryMode(false);
+      setNotice("Đã đổi mật khẩu");
+      return true;
+    } catch (err) {
+      setError(friendlyError((err as Error).message));
+      return false;
+    }
+  }, []);
+
+  const changePassword = useCallback(
+    async (currentPassword: string, newPassword: string) => {
+      const email = session?.user.email;
+      if (!email) return false;
+      setError(null);
+      setNotice(null);
+      try {
+        await dbChangePassword(email, currentPassword, newPassword);
+        setNotice("Đã đổi mật khẩu");
+        return true;
+      } catch (err) {
+        setError(friendlyError((err as Error).message));
+        return false;
+      }
+    },
+    [session]
+  );
+
   const clearMessages = useCallback(() => {
     setError(null);
     setNotice(null);
@@ -157,10 +221,14 @@ export function useAuth(): AuthState {
     me,
     error,
     notice,
+    recoveryMode,
     signIn,
     signUp,
     signOut,
     updateProfile,
+    requestPasswordReset,
+    updatePassword,
+    changePassword,
     clearMessages,
   };
 }

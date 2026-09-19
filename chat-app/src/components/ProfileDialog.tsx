@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogOut, X } from "lucide-react";
+import { ChevronDown, ChevronUp, KeyRound, LogOut, X } from "lucide-react";
 import type { ChatUser } from "../types";
 
 const AVATARS = ["🙂", "😎", "🐱", "🐶", "🦊", "🐼", "🐧", "🌻", "⚡", "🍀", "🎧", "🚀"];
@@ -10,15 +10,57 @@ interface Props {
   onClose: () => void;
   /** Trả về true nếu lưu thành công (tên không bị trùng) */
   onSave: (displayName: string, avatarEmoji: string) => Promise<boolean>;
+  /** Đổi mật khẩu: cần mật khẩu hiện tại, trả về true nếu thành công */
+  onChangePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   onSignOut: () => void;
 }
 
 /** Đổi tên hiển thị / ảnh đại diện và đăng xuất */
-export default function ProfileDialog({ me, error, onClose, onSave, onSignOut }: Props) {
+export default function ProfileDialog({
+  me,
+  error,
+  onClose,
+  onSave,
+  onChangePassword,
+  onSignOut,
+}: Props) {
   const [name, setName] = useState(me.displayName);
   const [avatar, setAvatar] = useState(me.avatarEmoji);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSaved, setPasswordSaved] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  const submitPassword = async () => {
+    setPasswordError(null);
+    setPasswordSaved(false);
+    if (newPassword.length < 6) {
+      setPasswordError("Mật khẩu mới phải có ít nhất 6 ký tự");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Mật khẩu nhập lại không khớp");
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      const ok = await onChangePassword(currentPassword, newPassword);
+      if (ok) {
+        setPasswordSaved(true);
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      }
+    } finally {
+      setChangingPassword(false);
+    }
+  };
 
   const submit = async () => {
     if (!name.trim() || saving) return;
@@ -91,9 +133,72 @@ export default function ProfileDialog({ me, error, onClose, onSave, onSignOut }:
           {saving ? "Đang lưu..." : "Lưu thay đổi"}
         </button>
 
+        {/* Đổi mật khẩu */}
+        <div className="mt-4 border-t border-slate-100 pt-3">
+          <button
+            onClick={() => {
+              setShowPasswordForm((v) => !v);
+              setPasswordError(null);
+              setPasswordSaved(false);
+            }}
+            className="w-full flex items-center justify-between text-sm font-medium text-slate-700 py-1"
+          >
+            <span className="flex items-center gap-2">
+              <KeyRound size={15} className="text-slate-400" />
+              Đổi mật khẩu
+            </span>
+            {showPasswordForm ? (
+              <ChevronUp size={16} className="text-slate-400" />
+            ) : (
+              <ChevronDown size={16} className="text-slate-400" />
+            )}
+          </button>
+
+          {showPasswordForm && (
+            <div className="mt-2 space-y-2">
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Mật khẩu hiện tại"
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              />
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Mật khẩu mới (ít nhất 6 ký tự)"
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              />
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && void submitPassword()}
+                placeholder="Nhập lại mật khẩu mới"
+                className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              />
+
+              {passwordError && <p className="text-sm text-red-500">{passwordError}</p>}
+              {passwordSaved && <p className="text-sm text-indigo-600">Đã đổi mật khẩu</p>}
+
+              <button
+                onClick={() => void submitPassword()}
+                disabled={changingPassword || !currentPassword || !newPassword}
+                className="w-full bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white text-sm font-medium py-2.5 rounded-xl transition-colors"
+              >
+                {changingPassword ? "Đang đổi..." : "Cập nhật mật khẩu"}
+              </button>
+            </div>
+          )}
+        </div>
+
         <button
           onClick={onSignOut}
-          className="mt-2 w-full flex items-center justify-center gap-2 border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium py-2.5 rounded-2xl transition-colors"
+          className="mt-3 w-full flex items-center justify-center gap-2 border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium py-2.5 rounded-2xl transition-colors"
         >
           <LogOut size={16} />
           Đăng xuất

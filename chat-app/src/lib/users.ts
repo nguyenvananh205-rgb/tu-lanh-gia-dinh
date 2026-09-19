@@ -44,6 +44,34 @@ export async function signOut(): Promise<void> {
   if (error) throw error;
 }
 
+// ── Mật khẩu ────────────────────────────────────────────────────
+/** Gửi email chứa link đặt lại mật khẩu, link trỏ về chính app này */
+export async function requestPasswordReset(email: string): Promise<void> {
+  const redirectTo = `${window.location.origin}${window.location.pathname}`;
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+  if (error) throw error;
+}
+
+/** Đặt mật khẩu mới cho phiên hiện tại (dùng sau khi mở link đặt lại) */
+export async function updatePassword(newPassword: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
+
+/** Đổi mật khẩu khi đang đăng nhập: xác minh mật khẩu cũ trước */
+export async function changePassword(
+  email: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  const { error: checkError } = await supabase.auth.signInWithPassword({
+    email,
+    password: currentPassword,
+  });
+  if (checkError) throw new Error("Mật khẩu hiện tại không đúng", { cause: checkError });
+  await updatePassword(newPassword);
+}
+
 // ── Hồ sơ ───────────────────────────────────────────────────────
 /**
  * Hồ sơ được trigger `handle_new_user` tạo ngay khi đăng ký, kèm tên hiển thị
