@@ -4,8 +4,13 @@
 **nhắn tin 1-1 giữa các thành viên trong nhà** (React + TypeScript + Vite + Supabase).
 
 - Cấu hình Supabase: `supabase/schema.sql`
-- Chức năng nhắn tin: chạy thêm `supabase/messaging-schema.sql`, chi tiết ở
-  [`docs/messaging.md`](docs/messaging.md)
+- Chức năng nhắn tin trong app tủ lạnh: chạy thêm `supabase/messaging-schema.sql`,
+  chi tiết ở [`docs/messaging.md`](docs/messaging.md)
+
+Repo này còn chứa một app độc lập, không liên quan tới app tủ lạnh:
+
+- [`chat-app/`](chat-app/README.md) — **Nhắn tin**: app chat 1-1 riêng biệt
+  (React + Vite + Supabase), có package.json và schema riêng.
 
 ---
 

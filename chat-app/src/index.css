@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: system-ui, "Segoe UI", sans-serif;
+  background: #f8fafc;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Bong bóng tin nhắn mới xuất hiện */
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+[data-message-id] {
+  animation: bubbleIn 0.18s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-message-id] { animation: none; }
+}
+
+/* Thanh cuộn mảnh cho danh sách tin nhắn */
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}

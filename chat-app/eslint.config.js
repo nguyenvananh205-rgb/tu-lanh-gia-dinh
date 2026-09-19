@@ -6,8 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  // chat-app là project độc lập, có eslint.config.js riêng
-  globalIgnores(['dist', 'chat-app']),
+  globalIgnores(['dist']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -18,6 +17,10 @@ export default defineConfig([
     ],
     languageOptions: {
       globals: globals.browser,
+    },
+    rules: {
+      // Nạp dữ liệu ban đầu trong useEffect là mẫu chuẩn của app này
+      'react-hooks/set-state-in-effect': 'off',
     },
   },
 ])
