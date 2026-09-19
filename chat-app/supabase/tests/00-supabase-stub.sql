@@ -40,6 +40,7 @@ drop publication if exists supabase_realtime;
 create publication supabase_realtime;
 
 grant usage on schema public, auth, storage to authenticated, anon;
+grant select, insert, update, delete on storage.objects, storage.buckets to authenticated;
 alter default privileges in schema public
   grant select, insert, update, delete on tables to authenticated;
 alter default privileges in schema public grant execute on functions to authenticated;

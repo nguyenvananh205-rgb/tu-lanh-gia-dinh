@@ -329,18 +329,43 @@ begin
 end $$;
 
 -- ── Storage: ảnh / video / voice ─────────────────────────────────
+-- Bucket ĐỂ RIÊNG TƯ: file chỉ mở được bằng signed URL do app tạo, và chỉ
+-- thành viên của box chat mới xin được link đó.
 insert into storage.buckets (id, name, public, file_size_limit)
-values ('chat-media', 'chat-media', true, 26214400) -- 25 MB
-on conflict (id) do nothing;
+values ('chat-media', 'chat-media', false, 26214400) -- 25 MB
+on conflict (id) do update set public = false, file_size_limit = 26214400;
+
+-- Đường dẫn file luôn là "<conversation_id>/<uuid>.<ext>" → lấy id box chat từ tên file
+create or replace function public.conversation_id_from_storage_name(object_name text)
+returns uuid
+language plpgsql immutable as $$
+declare
+  first_folder text := split_part(object_name, '/', 1);
+begin
+  if first_folder ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' then
+    return first_folder::uuid;
+  end if;
+  return null;
+end;
+$$;
 
 drop policy if exists "chat_media_read" on storage.objects;
 create policy "chat_media_read" on storage.objects
-  for select using (bucket_id = 'chat-media');
+  for select to authenticated
+  using (
+    bucket_id = 'chat-media'
+    and public.is_conversation_member(public.conversation_id_from_storage_name(name))
+  );
 
 drop policy if exists "chat_media_upload" on storage.objects;
 create policy "chat_media_upload" on storage.objects
-  for insert to authenticated with check (bucket_id = 'chat-media');
+  for insert to authenticated
+  with check (
+    bucket_id = 'chat-media'
+    and public.is_conversation_member(public.conversation_id_from_storage_name(name))
+  );
 
 drop policy if exists "chat_media_delete_own" on storage.objects;
 create policy "chat_media_delete_own" on storage.objects
-  for delete to authenticated using (bucket_id = 'chat-media' and owner = auth.uid());
+  for delete to authenticated
+  using (bucket_id = 'chat-media' and owner = auth.uid());

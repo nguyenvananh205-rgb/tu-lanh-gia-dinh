@@ -362,7 +362,14 @@ export function useChat(me: ChatUser | null, options: ChatOptions = {}): ChatSta
         setRawMessages((prev) =>
           prev.map((m) =>
             m.id === optimisticId
-              ? { ...saved, replyTo: m.replyTo ?? saved.replyTo, pending: false, status: "sent" }
+              ? {
+                  ...saved,
+                  replyTo: m.replyTo ?? saved.replyTo,
+                  // giữ ảnh/âm thanh tạm ở máy để không phải tải lại ngay
+                  mediaUrl: m.mediaUrl?.startsWith("blob:") ? m.mediaUrl : saved.mediaUrl,
+                  pending: false,
+                  status: "sent",
+                }
               : m
           )
         );
@@ -453,7 +460,7 @@ export function useChat(me: ChatUser | null, options: ChatOptions = {}): ChatSta
         try {
           const uploaded = await uploadChatMedia(activeId, file, file.name);
           await finalizeSend(
-            { ...input, mediaUrl: uploaded.url, mediaPath: uploaded.path, mediaMime: uploaded.mime },
+            { ...input, mediaPath: uploaded.path, mediaMime: uploaded.mime },
             optimistic.id
           );
         } catch (err) {
@@ -486,10 +493,7 @@ export function useChat(me: ChatUser | null, options: ChatOptions = {}): ChatSta
 
       try {
         const uploaded = await uploadChatMedia(activeId, recording.blob, recording.fileName);
-        await finalizeSend(
-          { ...input, mediaUrl: uploaded.url, mediaPath: uploaded.path },
-          optimistic.id
-        );
+        await finalizeSend({ ...input, mediaPath: uploaded.path }, optimistic.id);
       } catch (err) {
         markFailed(optimistic.id, (err as Error).message);
       }

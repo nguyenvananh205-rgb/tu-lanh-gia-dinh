@@ -6,7 +6,9 @@ riêng.
 
 ## Tài khoản & quyền riêng tư
 
-- **Đăng nhập bằng email + mật khẩu** do người dùng tự đặt (màn hình Đăng nhập / Đăng ký).
+- **Đăng nhập bằng email + mật khẩu** do người dùng tự đặt (màn hình Đăng nhập / Đăng ký),
+  có **Quên mật khẩu** (Supabase gửi email đặt lại) và **Đổi mật khẩu** trong mục Hồ sơ
+  (phải nhập đúng mật khẩu hiện tại).
 - **Tên hiển thị mặc định do hệ thống sinh**, dạng `Mèo Hiền 1907`, đảm bảo không trùng
   (unique index trên `lower(display_name)` + hàm `generate_display_name`). Người dùng đổi
   lại được bất cứ lúc nào trong mục Hồ sơ; tên trùng sẽ bị từ chối.
@@ -18,6 +20,19 @@ riêng.
 
 Link mời hết hạn sau 7 ngày, dùng được cho nhiều người (mỗi người một box chat riêng), và
 có nút **Link mới** để thu hồi link cũ.
+
+**Ảnh/video/voice nằm trong bucket riêng tư.** File chỉ mở được bằng signed URL (hạn 1 giờ)
+mà app xin hộ, và RLS chỉ cấp cho thành viên của đúng box chat chứa file đó — kể cả có URL
+cũ trong tay cũng hết hạn.
+
+## Thông báo tin nhắn mới
+
+Nút chuông trên header xin quyền Notification của trình duyệt. Khi có tin nhắn đến mà bạn
+đang ở tab khác, cửa sổ khác hoặc đang mở box chat khác, app hiện thông báo — bấm vào là
+mở đúng box chat đó. Tiêu đề tab cũng hiện số tin chưa đọc, ví dụ `(3) Nhắn tin`.
+
+Lưu ý: đây là thông báo **khi app đang mở**. Muốn báo cả khi đã đóng app thì cần Web Push
+(service worker + VAPID key + một Edge Function gửi push) — chưa có trong bản này.
 
 ## 10 chức năng nhắn tin và nơi cài đặt
 
@@ -50,7 +65,7 @@ Trên Supabase:
    Để đăng ký xong vào dùng được ngay, **tắt "Confirm email"** (nếu bật, người dùng phải
    xác nhận email trước khi đăng nhập — app có hiển thị thông báo tương ứng).
 2. **SQL Editor → chạy `supabase/schema.sql`** (bảng, RLS, trigger sinh tên hiển thị,
-   hàm `accept_invite`, realtime, bucket `chat-media`).
+   hàm `accept_invite`, realtime, bucket riêng tư `chat-media`). File chạy lại được nhiều lần.
 3. (Tuỳ chọn) Tìm GIF: thêm `VITE_TENOR_API_KEY` vào `.env`, hoặc nhập key ngay trong tab
    GIF. Không có key vẫn gửi GIF được bằng cách dán link.
 
@@ -67,7 +82,10 @@ src/
   lib/users.ts               Đăng ký/đăng nhập, hồ sơ, đổi tên hiển thị
   lib/invites.ts             Tạo / thu hồi / nhận link mời
   lib/chat.ts                Hội thoại, tin nhắn, upload, realtime
-  hooks/useAuth.ts           Phiên đăng nhập + hồ sơ của tôi
+  lib/media.ts               Cache + xin signed URL theo lô
+  hooks/useAuth.ts           Phiên đăng nhập, hồ sơ, quên/đổi mật khẩu
+  hooks/useNotifications.ts  Thông báo trình duyệt khi có tin mới
+  hooks/useMediaUrl.ts       Signed URL cho ảnh/video/voice
   hooks/useChat.ts           State hội thoại/tin nhắn, gửi lạc quan, đã xem
   hooks/useVoiceRecorder.ts  Ghi âm + sóng âm
   utils/format.ts            Định dạng giờ, tên, trạng thái, xem trước
@@ -75,8 +93,9 @@ src/
   data/emoji.ts              Bộ emoji theo nhóm
   data/stickers.ts           2 bộ sticker dựng sẵn
   components/
-    AuthScreen.tsx           Đăng nhập / đăng ký bằng email + mật khẩu
-    ProfileDialog.tsx        Đổi tên hiển thị, ảnh đại diện, đăng xuất
+    AuthScreen.tsx           Đăng nhập / đăng ký / quên mật khẩu
+    ResetPasswordScreen.tsx  Đặt mật khẩu mới khi mở link trong email
+    ProfileDialog.tsx        Đổi tên hiển thị, ảnh đại diện, đổi mật khẩu, đăng xuất
     InviteDialog.tsx         Link mời: copy, tạo link mới
     ConversationList.tsx     Danh sách box chat của tôi
     ChatThread.tsx           Khung hội thoại, phân cách ngày, tải tin cũ
@@ -103,8 +122,7 @@ Xem `supabase/tests/README.md`.
 
 ## Giới hạn hiện tại
 
-- Bucket `chat-media` để public (đường dẫn chứa UUID ngẫu nhiên). Cần kín hơn thì đổi bucket
-  sang private và thay `getPublicUrl` bằng `createSignedUrl` trong `src/lib/chat.ts`.
-- Chưa có quên mật khẩu / đổi mật khẩu trong app (Supabase hỗ trợ sẵn, chỉ cần thêm màn hình).
-- Phạm vi bản này đúng 10 chức năng đã chốt: chưa có chat nhóm, thông báo đẩy, trạng thái
-  "đang nhập…", tìm kiếm trong nội dung tin nhắn.
+- Thông báo chỉ chạy khi app đang mở (xem mục Thông báo ở trên).
+- Phạm vi bản này đúng 10 chức năng đã chốt: chưa có chat nhóm, trạng thái "đang nhập…",
+  tìm kiếm trong nội dung tin nhắn.
+- Link mời chưa giới hạn số lượt dùng (cố ý: một link gửi cho nhiều người).

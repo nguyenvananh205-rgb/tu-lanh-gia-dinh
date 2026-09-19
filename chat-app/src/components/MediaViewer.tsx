@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Download, X } from "lucide-react";
 import type { ChatMessage } from "../types";
+import { useMediaUrl } from "../hooks/useMediaUrl";
 
 interface Props {
   message: ChatMessage;
@@ -9,6 +10,8 @@ interface Props {
 
 /** Xem ảnh/video toàn màn hình */
 export default function MediaViewer({ message, onClose }: Props) {
+  const mediaUrl = useMediaUrl(message);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -17,7 +20,7 @@ export default function MediaViewer({ message, onClose }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  if (!message.mediaUrl) return null;
+  if (!mediaUrl) return null;
 
   return (
     <div
@@ -26,7 +29,7 @@ export default function MediaViewer({ message, onClose }: Props) {
     >
       <div className="absolute top-4 right-4 flex items-center gap-2">
         <a
-          href={message.mediaUrl}
+          href={mediaUrl}
           target="_blank"
           rel="noreferrer"
           download
@@ -48,14 +51,14 @@ export default function MediaViewer({ message, onClose }: Props) {
       <div className="max-w-full max-h-full" onClick={(e) => e.stopPropagation()}>
         {message.kind === "video" ? (
           <video
-            src={message.mediaUrl}
+            src={mediaUrl}
             controls
             autoPlay
             className="max-h-[85vh] max-w-full rounded-xl"
           />
         ) : (
           <img
-            src={message.mediaUrl}
+            src={mediaUrl}
             alt={message.body ?? "Ảnh"}
             className="max-h-[85vh] max-w-full rounded-xl object-contain"
           />

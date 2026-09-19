@@ -22,6 +22,7 @@ import {
   STATUS_LABELS,
 } from "../utils/format";
 import VoicePlayer from "./VoicePlayer";
+import { useMediaUrl } from "../hooks/useMediaUrl";
 
 interface Props {
   message: ChatMessage;
@@ -56,6 +57,8 @@ export default function MessageBubble({
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  // Bucket riêng tư: ảnh/video/voice mở bằng link tạm có hạn
+  const mediaUrl = useMediaUrl(message);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -90,7 +93,12 @@ export default function MessageBubble({
     }
 
     // Ảnh/video/voice luôn kèm đường dẫn; nếu thiếu thì báo thay vì hiện ô trống
-    if (message.kind !== "text" && message.kind !== "sticker" && !message.mediaUrl) {
+    if (
+      message.kind !== "text" &&
+      message.kind !== "sticker" &&
+      !message.mediaUrl &&
+      !message.mediaPath
+    ) {
       return (
         <span className={`text-sm italic ${mine ? "text-white/80" : "text-slate-400"}`}>
           Không tải được nội dung
@@ -108,9 +116,9 @@ export default function MessageBubble({
         );
 
       case "gif":
-        return message.mediaUrl ? (
+        return mediaUrl ? (
           <img
-            src={message.mediaUrl}
+            src={mediaUrl}
             alt={message.body ?? "GIF"}
             loading="lazy"
             className="rounded-2xl max-w-[220px] max-h-[220px] object-cover cursor-pointer"
@@ -122,7 +130,7 @@ export default function MessageBubble({
         return (
           <div className="space-y-1">
             <img
-              src={message.mediaUrl}
+              src={mediaUrl}
               alt={message.body ?? "Ảnh"}
               loading="lazy"
               className={`rounded-xl max-w-[240px] max-h-[280px] object-cover cursor-pointer ${
@@ -138,7 +146,7 @@ export default function MessageBubble({
         return (
           <div className="space-y-1">
             <video
-              src={message.mediaUrl}
+              src={mediaUrl}
               controls
               preload="metadata"
               className={`rounded-xl max-w-[240px] max-h-[280px] ${message.pending ? "opacity-60" : ""}`}
@@ -148,9 +156,9 @@ export default function MessageBubble({
         );
 
       case "voice":
-        return message.mediaUrl ? (
+        return mediaUrl ? (
           <VoicePlayer
-            src={message.mediaUrl}
+            src={mediaUrl}
             durationMs={message.durationMs}
             waveform={message.waveform}
             mine={mine}

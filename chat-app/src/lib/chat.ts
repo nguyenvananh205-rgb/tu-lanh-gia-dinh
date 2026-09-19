@@ -358,7 +358,7 @@ export async function markRead(conversationId: string, userId: string): Promise<
 
 // ── Tải ảnh / video / voice lên storage ─────────────────────────
 export interface UploadedMedia {
-  url: string;
+  /** Đường dẫn trong bucket riêng tư; link xem được tạo bằng signed URL */
   path: string;
   mime: string;
   size: number;
@@ -381,9 +381,7 @@ export async function uploadChatMedia(
   });
   if (error) throw error;
 
-  const { data } = supabase.storage.from(CHAT_BUCKET).getPublicUrl(path);
   return {
-    url: data.publicUrl,
     path,
     mime: file.type || "application/octet-stream",
     size: file.size,

@@ -191,5 +191,47 @@ end $$;
 reset role;
 \echo '[OK] 10. Link của chính mình và link đã thu hồi đều bị chặn'
 
+-- 11. File ảnh/video/voice: chỉ thành viên box chat mới đọc/tải lên được
+select set_config('request.jwt.claim.sub', :'B', false);
+set role authenticated;
+do $$
+declare conv uuid;
+begin
+  select conversation_id into conv from public.messages limit 1;
+  insert into storage.objects (bucket_id, name, owner)
+  values ('chat-media', conv || '/anh1.png', '22222222-2222-2222-2222-222222222222');
+end $$;
+reset role;
+
+select set_config('request.jwt.claim.sub', :'C', false);
+set role authenticated;
+do $$
+declare n int; conv uuid;
+begin
+  select count(*) into n from storage.objects;
+  if n <> 0 then raise exception 'FAIL: C đọc được file của box chat khác'; end if;
+
+  reset role;
+  select conversation_id into conv from public.messages limit 1;
+  perform set_config('request.jwt.claim.sub', '33333333-3333-3333-3333-333333333333', false);
+  set role authenticated;
+  begin
+    insert into storage.objects (bucket_id, name, owner)
+    values ('chat-media', conv || '/chen-ngang.png', '33333333-3333-3333-3333-333333333333');
+    raise exception 'FAIL: C tải được file vào box chat của người khác';
+  exception when insufficient_privilege then
+    null;
+  end;
+end $$;
+reset role;
+
+do $$
+declare is_public boolean;
+begin
+  select public into is_public from storage.buckets where id = 'chat-media';
+  if is_public then raise exception 'FAIL: bucket chat-media vẫn đang public'; end if;
+end $$;
+\echo '[OK] 11. Bucket riêng tư: chỉ thành viên box chat đọc/tải file lên được'
+
 \echo ''
 \echo '===== TẤT CẢ KIỂM THỬ ĐỀU ĐẠT ====='

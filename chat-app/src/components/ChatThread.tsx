@@ -8,6 +8,7 @@ import {
   formatDayDivider,
   avatarOf,
 } from "../utils/format";
+import { prefetchMediaUrls } from "../lib/media";
 import MessageBubble from "./MessageBubble";
 import MessageComposer from "./MessageComposer";
 import MediaViewer from "./MediaViewer";
@@ -32,6 +33,14 @@ export default function ChatThread({ chat, me, onBack }: Props) {
   const lastCountRef = useRef(0);
 
   const messages = chat.messages;
+
+  // Xin trước signed URL cho ảnh/video/voice của cả trang tin nhắn (1 lần gọi)
+  useEffect(() => {
+    const paths = messages
+      .map((m) => m.mediaPath)
+      .filter((p): p is string => !!p);
+    if (paths.length > 0) void prefetchMediaUrls(paths);
+  }, [messages]);
 
   // Tự cuộn xuống khi có tin mới (nếu đang ở gần đáy)
   useEffect(() => {
