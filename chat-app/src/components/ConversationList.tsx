@@ -1,4 +1,4 @@
-import { Loader2, MessageSquarePlus, Search } from "lucide-react";
+import { Link2, Loader2, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { ChatUser } from "../types";
 import type { ChatState } from "../hooks/useChat";
@@ -13,9 +13,11 @@ import {
 interface Props {
   chat: ChatState;
   me: ChatUser;
+  /** Mở hộp thoại link mời để tạo box chat mới */
+  onInvite: () => void;
 }
 
-export default function ConversationList({ chat, me }: Props) {
+export default function ConversationList({ chat, me, onInvite }: Props) {
   const [query, setQuery] = useState("");
   const keyword = query.trim().toLowerCase();
 
@@ -27,27 +29,23 @@ export default function ConversationList({ chat, me }: Props) {
     [chat.conversations, keyword]
   );
 
-  // Người dùng khác chưa có cuộc trò chuyện nào với mình
-  const newContacts = useMemo(() => {
-    const chatted = new Set(
-      chat.conversations.map((c) => c.partner?.id).filter((id): id is string => !!id)
-    );
-    return chat.people.filter(
-      (person) =>
-        !chatted.has(person.id) &&
-        (keyword ? displayName(person).toLowerCase().includes(keyword) : true)
-    );
-  }, [chat.conversations, chat.people, keyword]);
-
   return (
     <div className="flex flex-col h-full bg-white rounded-2xl border border-slate-200 overflow-hidden">
-      <div className="p-2.5 border-b border-slate-100">
+      <div className="p-2.5 border-b border-slate-100 space-y-2">
+        <button
+          onClick={onInvite}
+          className="w-full flex items-center justify-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium py-2.5 rounded-xl transition-colors"
+        >
+          <Link2 size={16} />
+          Mở box chat mới bằng link
+        </button>
+
         <div className="relative">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Tìm người để nhắn..."
+            placeholder="Tìm trong các box chat..."
             className="w-full bg-slate-50 rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
         </div>
@@ -103,39 +101,18 @@ export default function ConversationList({ chat, me }: Props) {
           );
         })}
 
-        {newContacts.length > 0 && (
-          <div className="pt-2">
-            <p className="px-3 py-1.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
-              Người đang dùng app
+        {!chat.conversationsLoading && conversations.length === 0 && (
+          <div className="px-5 py-10 text-center">
+            <p className="text-sm text-slate-500 font-medium mb-1">
+              {keyword ? "Không tìm thấy box chat nào" : "Chưa có box chat nào"}
             </p>
-            {newContacts.map((person) => (
-              <button
-                key={person.id}
-                onClick={() => void chat.startDirectChat(person.id)}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-slate-50"
-              >
-                <div
-                  className={`w-10 h-10 rounded-full ${avatarColor(person.id)} text-lg flex items-center justify-center flex-shrink-0`}
-                >
-                  {avatarOf(person)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-700 truncate">
-                    {displayName(person)}
-                  </p>
-                  <p className="text-xs text-slate-400">Bắt đầu trò chuyện</p>
-                </div>
-                <MessageSquarePlus size={16} className="text-indigo-500 flex-shrink-0" />
-              </button>
-            ))}
+            {!keyword && (
+              <p className="text-xs text-slate-400">
+                Gửi link mời cho người bạn muốn nhắn tin. Khi họ mở link, box chat giữa hai người
+                sẽ xuất hiện ở đây.
+              </p>
+            )}
           </div>
-        )}
-
-        {!chat.conversationsLoading && conversations.length === 0 && newContacts.length === 0 && (
-          <p className="text-center text-sm text-slate-400 px-4 py-10">
-            Chưa có ai khác dùng app. Mở app trên một thiết bị (hoặc trình duyệt) khác và đặt tên
-            để bắt đầu nhắn tin.
-          </p>
         )}
       </div>
     </div>

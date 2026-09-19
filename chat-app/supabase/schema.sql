@@ -2,9 +2,13 @@
 -- App Nhắn tin — Supabase schema
 -- Chạy toàn bộ file này trong Supabase Dashboard > SQL Editor
 --
--- Trước khi chạy, bật: Authentication > Sign In / Providers > Anonymous sign-ins.
--- App không có màn hình đăng nhập: mỗi thiết bị được cấp một danh tính ẩn danh,
--- người dùng chỉ cần đặt tên hiển thị.
+-- Trước khi chạy:
+--   Authentication > Sign In / Providers > Email: BẬT.
+--   Để đăng ký xong vào dùng được ngay, TẮT "Confirm email".
+--
+-- Nguyên tắc bảo mật: mỗi người chỉ đọc được hội thoại mà mình là thành viên,
+-- và chỉ thấy hồ sơ của người đang trò chuyện cùng. Muốn mở box chat mới thì
+-- phải có link mời của người kia (bảng chat_invites + hàm accept_invite).
 --
 -- 10 chức năng nhỏ được phủ bởi schema này:
 --   1. Văn bản              → messages.kind = 'text'
@@ -26,6 +30,57 @@ create table if not exists public.chat_users (
   created_at timestamptz default now(),
   last_seen_at timestamptz default now()
 );
+
+-- Tên hiển thị không được trùng (không phân biệt hoa/thường)
+create unique index if not exists chat_users_display_name_unique
+  on public.chat_users (lower(display_name));
+
+-- Sinh tên hiển thị mặc định, đảm bảo không trùng
+create or replace function public.generate_display_name()
+returns text
+language plpgsql security definer set search_path = public as $$
+declare
+  nouns text[] := array['Gấu','Mèo','Cún','Cáo','Hổ','Nai','Sóc','Cá Heo','Chim Sẻ','Ong','Bướm','Rùa','Cú','Hươu'];
+  adjectives text[] := array['Vui','Hiền','Nhanh','Lanh Lợi','Ấm Áp','Bình Yên','Xinh','Mạnh Mẽ','Nhẹ Nhàng','Rực Rỡ'];
+  candidate text;
+begin
+  for i in 1..50 loop
+    candidate :=
+      nouns[1 + floor(random() * array_length(nouns, 1))::int] || ' ' ||
+      adjectives[1 + floor(random() * array_length(adjectives, 1))::int] || ' ' ||
+      lpad(floor(random() * 10000)::int::text, 4, '0');
+    if not exists (
+      select 1 from public.chat_users where lower(display_name) = lower(candidate)
+    ) then
+      return candidate;
+    end if;
+  end loop;
+  return 'Người dùng ' || substr(md5(random()::text), 1, 8);
+end;
+$$;
+
+-- Vừa đăng ký xong là có hồ sơ với tên mặc định + emoji ngẫu nhiên
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  emojis text[] := array['🙂','😎','🐱','🐶','🦊','🐼','🐧','🌻','⚡','🍀','🎧','🚀'];
+begin
+  insert into public.chat_users (id, display_name, avatar_emoji)
+  values (
+    new.id,
+    public.generate_display_name(),
+    emojis[1 + floor(random() * array_length(emojis, 1))::int]
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
 
 -- ── Hội thoại ────────────────────────────────────────────────────
 create table if not exists public.conversations (
@@ -81,6 +136,18 @@ create table if not exists public.message_hides (
 create index if not exists message_hides_user_conv_idx
   on public.message_hides (user_id, conversation_id);
 
+-- ── Link mời mở box chat ─────────────────────────────────────────
+create table if not exists public.chat_invites (
+  token text primary key,
+  owner_id uuid references public.chat_users(id) on delete cascade not null,
+  created_at timestamptz default now(),
+  expires_at timestamptz not null default now() + interval '7 days',
+  revoked boolean not null default false,
+  uses integer not null default 0
+);
+
+create index if not exists chat_invites_owner_idx on public.chat_invites (owner_id);
+
 -- ── Hàm phụ trợ (security definer để RLS không bị đệ quy) ────────
 create or replace function public.is_conversation_member(conv uuid, uid uuid default auth.uid())
 returns boolean
@@ -88,6 +155,18 @@ language sql security definer stable set search_path = public as $$
   select exists (
     select 1 from public.conversation_members m
     where m.conversation_id = conv and m.user_id = uid
+  );
+$$;
+
+-- Tôi có đang ở chung hội thoại nào với người này không?
+create or replace function public.shares_conversation_with(target uuid)
+returns boolean
+language sql security definer stable set search_path = public as $$
+  select exists (
+    select 1
+    from public.conversation_members a
+    join public.conversation_members b on b.conversation_id = a.conversation_id
+    where a.user_id = auth.uid() and b.user_id = target
   );
 $$;
 
@@ -107,17 +186,69 @@ create trigger messages_bump_conversation
   after insert on public.messages
   for each row execute function public.bump_conversation_activity();
 
+-- Nhận link mời: tạo (hoặc trả về) box chat 1-1 giữa người mời và người bấm link
+create or replace function public.accept_invite(p_token text)
+returns uuid
+language plpgsql security definer set search_path = public as $$
+declare
+  inv public.chat_invites;
+  me uuid := auth.uid();
+  conv uuid;
+begin
+  if me is null then
+    raise exception 'Bạn cần đăng nhập trước';
+  end if;
+
+  select * into inv from public.chat_invites where token = p_token;
+  if not found then
+    raise exception 'Link mời không tồn tại';
+  end if;
+  if inv.revoked then
+    raise exception 'Link mời đã bị thu hồi';
+  end if;
+  if inv.expires_at < now() then
+    raise exception 'Link mời đã hết hạn';
+  end if;
+  if inv.owner_id = me then
+    raise exception 'Đây là link mời của chính bạn';
+  end if;
+
+  select c.id into conv
+  from public.conversations c
+  join public.conversation_members m1 on m1.conversation_id = c.id and m1.user_id = me
+  join public.conversation_members m2 on m2.conversation_id = c.id and m2.user_id = inv.owner_id
+  where c.type = 'direct'
+  limit 1;
+
+  if conv is null then
+    insert into public.conversations (type, created_by)
+    values ('direct', inv.owner_id)
+    returning id into conv;
+
+    insert into public.conversation_members (conversation_id, user_id)
+    values (conv, me), (conv, inv.owner_id);
+  end if;
+
+  update public.chat_invites set uses = uses + 1 where token = p_token;
+  return conv;
+end;
+$$;
+
+grant execute on function public.accept_invite(text) to authenticated;
+
 -- ── RLS ──────────────────────────────────────────────────────────
 alter table public.chat_users enable row level security;
+alter table public.chat_invites enable row level security;
 alter table public.conversations enable row level security;
 alter table public.conversation_members enable row level security;
 alter table public.messages enable row level security;
 alter table public.message_hides enable row level security;
 
--- Danh sách người dùng: ai đã đăng nhập (kể cả ẩn danh) đều xem được để chọn người nhắn
+-- Hồ sơ: chỉ thấy chính mình và người đang trò chuyện cùng
 drop policy if exists "chat_users_read" on public.chat_users;
 create policy "chat_users_read" on public.chat_users
-  for select to authenticated using (true);
+  for select to authenticated
+  using (id = auth.uid() or public.shares_conversation_with(id));
 
 drop policy if exists "chat_users_insert_self" on public.chat_users;
 create policy "chat_users_insert_self" on public.chat_users
@@ -127,33 +258,32 @@ drop policy if exists "chat_users_update_self" on public.chat_users;
 create policy "chat_users_update_self" on public.chat_users
   for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
 
+-- Link mời: chỉ chủ link tự quản lý (người nhận dùng hàm accept_invite)
+drop policy if exists "chat_invites_own" on public.chat_invites;
+create policy "chat_invites_own" on public.chat_invites
+  for all to authenticated using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+
 -- Hội thoại: chỉ thành viên đọc được
 drop policy if exists "conversations_member_read" on public.conversations;
 create policy "conversations_member_read" on public.conversations
   for select to authenticated using (public.is_conversation_member(id));
-
-drop policy if exists "conversations_insert" on public.conversations;
-create policy "conversations_insert" on public.conversations
-  for insert to authenticated with check (created_by = auth.uid());
 
 -- Thành viên: thấy người cùng hội thoại, chỉ tự sửa mốc đã nhận/đã xem của mình
 drop policy if exists "conversation_members_read" on public.conversation_members;
 create policy "conversation_members_read" on public.conversation_members
   for select to authenticated using (public.is_conversation_member(conversation_id));
 
-drop policy if exists "conversation_members_insert" on public.conversation_members;
-create policy "conversation_members_insert" on public.conversation_members
-  for insert to authenticated with check (
-    user_id = auth.uid()
-    or exists (
-      select 1 from public.conversations c
-      where c.id = conversation_id and c.created_by = auth.uid()
-    )
-  );
-
 drop policy if exists "conversation_members_update_self" on public.conversation_members;
 create policy "conversation_members_update_self" on public.conversation_members
   for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- Rời hội thoại (chỉ xoá chính mình)
+drop policy if exists "conversation_members_delete_self" on public.conversation_members;
+create policy "conversation_members_delete_self" on public.conversation_members
+  for delete to authenticated using (user_id = auth.uid());
+
+-- Không có policy INSERT cho conversations / conversation_members:
+-- box chat mới chỉ được tạo qua hàm accept_invite (security definer).
 
 -- Tin nhắn: thành viên đọc; chỉ người gửi sửa / thu hồi / xoá hẳn
 drop policy if exists "messages_member_read" on public.messages;

@@ -4,7 +4,22 @@ App nhắn tin độc lập (React + TypeScript + Vite + Supabase). Không liên
 "Tủ lạnh gia đình" ở thư mục gốc: có `package.json`, cấu hình build và schema Supabase
 riêng.
 
-## 10 chức năng nhỏ và nơi cài đặt
+## Tài khoản & quyền riêng tư
+
+- **Đăng nhập bằng email + mật khẩu** do người dùng tự đặt (màn hình Đăng nhập / Đăng ký).
+- **Tên hiển thị mặc định do hệ thống sinh**, dạng `Mèo Hiền 1907`, đảm bảo không trùng
+  (unique index trên `lower(display_name)` + hàm `generate_display_name`). Người dùng đổi
+  lại được bất cứ lúc nào trong mục Hồ sơ; tên trùng sẽ bị từ chối.
+- **Mỗi người chỉ thấy box chat của mình**: RLS chỉ cho đọc hội thoại mà mình là thành
+  viên, và chỉ thấy hồ sơ của người đang trò chuyện cùng. Không có danh sách người dùng
+  công khai.
+- **Mở box chat mới bằng link mời**: người kia mở link → đăng nhập → box chat giữa hai
+  người xuất hiện. Không có link thì không ai mở được box chat với bạn.
+
+Link mời hết hạn sau 7 ngày, dùng được cho nhiều người (mỗi người một box chat riêng), và
+có nút **Link mới** để thu hồi link cũ.
+
+## 10 chức năng nhắn tin và nơi cài đặt
 
 | # | Chức năng | Cài đặt ở đâu |
 |---|-----------|----------------|
@@ -12,7 +27,7 @@ riêng.
 | 2 | Gửi ảnh/video | `MessageComposer` → `uploadChatMedia` (bucket `chat-media`) → `kind='image' \| 'video'`; xem lớn ở `MediaViewer` |
 | 4 | Gửi voice message | `useVoiceRecorder` (MediaRecorder + đo mức âm) → `kind='voice'` kèm `duration_ms`, `waveform`; phát lại ở `VoicePlayer` |
 | 5 | Emoji/sticker/GIF | `EmojiStickerPicker`: emoji (`data/emoji.ts`), 24 sticker (`data/stickers.ts`), GIF qua Tenor hoặc dán link (`utils/gif.ts`) |
-| 6 | Chat 1-1 | `conversations.type='direct'` 2 thành viên · `getOrCreateDirectConversation` |
+| 6 | Chat 1-1 | `conversations.type='direct'` 2 thành viên, tạo qua hàm `accept_invite` |
 | 8 | Reply/quote tin nhắn | `messages.reply_to_id`; bấm khung quote để nhảy tới tin gốc |
 | 10 | Chỉnh sửa/xóa tin nhắn | Sửa: `messages.edited_at`. Xóa: `message_hides` — chỉ ẩn ở phía người xóa |
 | 11 | Thu hồi tin nhắn | `messages.recalled_at` + xoá file media; mọi người thấy "Tin nhắn đã được thu hồi" |
@@ -31,27 +46,28 @@ npm run dev
 
 Trên Supabase:
 
-1. **Authentication → Sign In / Providers → bật Anonymous sign-ins.**
-   App không có màn hình đăng nhập: mỗi thiết bị nhận một danh tính ẩn danh, người dùng
-   chỉ đặt tên hiển thị và chọn ảnh đại diện (emoji).
-2. **SQL Editor → chạy `supabase/schema.sql`** (tạo bảng, RLS, bật realtime, tạo bucket
-   `chat-media`).
+1. **Authentication → Sign In / Providers → Email: bật.**
+   Để đăng ký xong vào dùng được ngay, **tắt "Confirm email"** (nếu bật, người dùng phải
+   xác nhận email trước khi đăng nhập — app có hiển thị thông báo tương ứng).
+2. **SQL Editor → chạy `supabase/schema.sql`** (bảng, RLS, trigger sinh tên hiển thị,
+   hàm `accept_invite`, realtime, bucket `chat-media`).
 3. (Tuỳ chọn) Tìm GIF: thêm `VITE_TENOR_API_KEY` vào `.env`, hoặc nhập key ngay trong tab
    GIF. Không có key vẫn gửi GIF được bằng cách dán link.
 
-Muốn thử nhắn tin giữa 2 người: mở app ở 2 trình duyệt khác nhau (hoặc một cửa sổ ẩn danh),
-đặt 2 tên khác nhau — mỗi bên sẽ thấy người kia ở mục "Người đang dùng app".
+Thử nhắn tin giữa 2 người: đăng ký 2 tài khoản ở 2 trình duyệt (hoặc một cửa sổ ẩn danh),
+bên A bấm **Mở box chat mới bằng link** → copy link → bên B mở link đó.
 
 ## Cấu trúc
 
 ```
 src/
-  App.tsx                    Khung app: header, hồ sơ, bố cục 2 cột / 1 cột
+  App.tsx                    Khung app: header, hồ sơ, link mời, bố cục 2 cột / 1 cột
   types.ts                   Kiểu dữ liệu dùng chung
   lib/supabase.ts            Khởi tạo client + sinh UUID
-  lib/users.ts               Phiên ẩn danh, hồ sơ, danh sách người dùng
+  lib/users.ts               Đăng ký/đăng nhập, hồ sơ, đổi tên hiển thị
+  lib/invites.ts             Tạo / thu hồi / nhận link mời
   lib/chat.ts                Hội thoại, tin nhắn, upload, realtime
-  hooks/useIdentity.ts       Danh tính & hồ sơ của tôi
+  hooks/useAuth.ts           Phiên đăng nhập + hồ sơ của tôi
   hooks/useChat.ts           State hội thoại/tin nhắn, gửi lạc quan, đã xem
   hooks/useVoiceRecorder.ts  Ghi âm + sóng âm
   utils/format.ts            Định dạng giờ, tên, trạng thái, xem trước
@@ -59,15 +75,17 @@ src/
   data/emoji.ts              Bộ emoji theo nhóm
   data/stickers.ts           2 bộ sticker dựng sẵn
   components/
-    IdentityGate.tsx         Đặt tên + ảnh đại diện (thay cho đăng nhập)
-    ConversationList.tsx     Danh sách hội thoại + người chưa chat
+    AuthScreen.tsx           Đăng nhập / đăng ký bằng email + mật khẩu
+    ProfileDialog.tsx        Đổi tên hiển thị, ảnh đại diện, đăng xuất
+    InviteDialog.tsx         Link mời: copy, tạo link mới
+    ConversationList.tsx     Danh sách box chat của tôi
     ChatThread.tsx           Khung hội thoại, phân cách ngày, tải tin cũ
     MessageBubble.tsx        Bong bóng tin nhắn + menu hành động
     MessageComposer.tsx      Soạn tin, đính kèm, ghi âm, trả lời, sửa
     EmojiStickerPicker.tsx   Tab Emoji / Sticker / GIF
     VoicePlayer.tsx          Trình phát voice có sóng âm
     MediaViewer.tsx          Xem ảnh/video toàn màn hình
-supabase/schema.sql          Bảng, RLS, realtime, bucket chat-media
+supabase/schema.sql          Bảng, RLS, trigger, hàm accept_invite, bucket chat-media
 ```
 
 ## Cách "đã gửi / đã nhận / đã xem" hoạt động
@@ -77,14 +95,10 @@ supabase/schema.sql          Bảng, RLS, realtime, bucket chat-media
 - Người nhận mở hội thoại → `last_read_at` → **Đã xem** (✓✓ xanh).
 - Gửi lỗi (mất mạng, upload hỏng) → **Gửi lỗi** kèm nút **Gửi lại**.
 
-Cách này chỉ cần 2 cột trên bảng thành viên thay vì một bản ghi trạng thái cho mỗi tin nhắn.
-
 ## Giới hạn hiện tại
 
 - Bucket `chat-media` để public (đường dẫn chứa UUID ngẫu nhiên). Cần kín hơn thì đổi bucket
   sang private và thay `getPublicUrl` bằng `createSignedUrl` trong `src/lib/chat.ts`.
-- Danh tính gắn với trình duyệt: xoá dữ liệu trình duyệt là mất danh tính cũ. Nếu sau này
-  cần đăng nhập thật (số điện thoại/email), thay `ensureSession` trong `src/lib/users.ts`.
-- Mọi người dùng app đều thấy nhau trong danh sách để bắt đầu chat (chưa có kết bạn/mã mời).
+- Chưa có quên mật khẩu / đổi mật khẩu trong app (Supabase hỗ trợ sẵn, chỉ cần thêm màn hình).
 - Phạm vi bản này đúng 10 chức năng đã chốt: chưa có chat nhóm, thông báo đẩy, trạng thái
   "đang nhập…", tìm kiếm trong nội dung tin nhắn.

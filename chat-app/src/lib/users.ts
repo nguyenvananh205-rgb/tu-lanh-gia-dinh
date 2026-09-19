@@ -17,21 +17,39 @@ export function dbUserToApp(db: DbChatUser): ChatUser {
   };
 }
 
-/**
- * App không có màn hình đăng nhập: mỗi thiết bị được cấp một phiên ẩn danh
- * (Supabase anonymous sign-in). Phiên này được lưu lại nên mở lại app vẫn là
- * cùng một người.
- */
-export async function ensureSession(): Promise<string> {
-  const { data } = await supabase.auth.getSession();
-  if (data.session?.user) return data.session.user.id;
+/** Lỗi Postgres khi tên hiển thị bị trùng */
+const UNIQUE_VIOLATION = "23505";
 
-  const { data: created, error } = await supabase.auth.signInAnonymously();
+// ── Đăng ký / đăng nhập ─────────────────────────────────────────
+export async function signUp(email: string, password: string) {
+  const { data, error } = await supabase.auth.signUp({
+    email: email.trim(),
+    password,
+  });
   if (error) throw error;
-  if (!created.user) throw new Error("Không tạo được phiên làm việc");
-  return created.user.id;
+  return data;
 }
 
+export async function signIn(email: string, password: string) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function signOut(): Promise<void> {
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
+}
+
+// ── Hồ sơ ───────────────────────────────────────────────────────
+/**
+ * Hồ sơ được trigger `handle_new_user` tạo ngay khi đăng ký, kèm tên hiển thị
+ * mặc định do hệ thống sinh và không trùng với ai. Trong trường hợp hiếm gặp
+ * (đăng ký trước khi chạy schema) thì tạo bù ở đây.
+ */
 export async function getMyProfile(userId: string): Promise<ChatUser | null> {
   const { data, error } = await supabase
     .from("chat_users")
@@ -42,22 +60,41 @@ export async function getMyProfile(userId: string): Promise<ChatUser | null> {
   return data ? dbUserToApp(data as DbChatUser) : null;
 }
 
-export async function saveMyProfile(
+export async function createFallbackProfile(userId: string): Promise<ChatUser> {
+  const suffix = Math.floor(1000 + Math.random() * 9000);
+  const { data, error } = await supabase
+    .from("chat_users")
+    .insert({ id: userId, display_name: `Người dùng ${suffix}` })
+    .select("id, display_name, avatar_emoji, last_seen_at")
+    .single();
+  if (error) throw error;
+  return dbUserToApp(data as DbChatUser);
+}
+
+export class DisplayNameTakenError extends Error {
+  constructor() {
+    super("Tên hiển thị này đã có người dùng, hãy chọn tên khác");
+    this.name = "DisplayNameTakenError";
+  }
+}
+
+/** Đổi tên hiển thị / ảnh đại diện. Tên trùng sẽ bị từ chối. */
+export async function updateMyProfile(
   userId: string,
   displayName: string,
   avatarEmoji: string
 ): Promise<ChatUser> {
   const { data, error } = await supabase
     .from("chat_users")
-    .upsert({
-      id: userId,
-      display_name: displayName.trim(),
-      avatar_emoji: avatarEmoji,
-      last_seen_at: new Date().toISOString(),
-    })
+    .update({ display_name: displayName.trim(), avatar_emoji: avatarEmoji })
+    .eq("id", userId)
     .select("id, display_name, avatar_emoji, last_seen_at")
     .single();
-  if (error) throw error;
+
+  if (error) {
+    if (error.code === UNIQUE_VIOLATION) throw new DisplayNameTakenError();
+    throw error;
+  }
   return dbUserToApp(data as DbChatUser);
 }
 
@@ -66,16 +103,4 @@ export async function touchLastSeen(userId: string): Promise<void> {
     .from("chat_users")
     .update({ last_seen_at: new Date().toISOString() })
     .eq("id", userId);
-}
-
-/** Những người đang dùng app — để chọn người bắt đầu chat 1-1 */
-export async function listPeople(myId: string): Promise<ChatUser[]> {
-  const { data, error } = await supabase
-    .from("chat_users")
-    .select("id, display_name, avatar_emoji, last_seen_at")
-    .neq("id", myId)
-    .order("last_seen_at", { ascending: false })
-    .limit(100);
-  if (error) throw error;
-  return ((data ?? []) as DbChatUser[]).map(dbUserToApp);
 }

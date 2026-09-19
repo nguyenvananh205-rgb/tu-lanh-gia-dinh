@@ -12,7 +12,6 @@ import {
   editMessage as dbEditMessage,
   getMessageById,
   getMessages,
-  getOrCreateDirectConversation,
   hideMessage,
   listConversations,
   markDelivered,
@@ -24,7 +23,6 @@ import {
   uploadChatMedia,
   type SendMessageInput,
 } from "../lib/chat";
-import { listPeople } from "../lib/users";
 import { newId } from "../lib/supabase";
 import { kindFromMime, resolveStatus } from "../utils/format";
 import type { VoiceRecording } from "./useVoiceRecorder";
@@ -37,8 +35,6 @@ export interface ChatState {
   conversations: Conversation[];
   conversationsLoading: boolean;
   totalUnread: number;
-  /** Những người khác đang dùng app — để bắt đầu chat 1-1 */
-  people: ChatUser[];
   activeId: string | null;
   activeConversation: Conversation | null;
   messages: ChatMessage[];
@@ -48,7 +44,6 @@ export interface ChatState {
   error: string | null;
   openConversation: (id: string) => void;
   closeConversation: () => void;
-  startDirectChat: (userId: string) => Promise<string | null>;
   loadOlder: () => Promise<void>;
   sendText: (text: string, options?: SendOptions) => Promise<void>;
   sendSticker: (stickerId: string, options?: SendOptions) => Promise<void>;
@@ -85,7 +80,6 @@ export function useChat(me: ChatUser | null): ChatState {
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [conversationsLoading, setConversationsLoading] = useState(false);
-  const [people, setPeople] = useState<ChatUser[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [rawMessages, setRawMessages] = useState<ChatMessage[]>([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
@@ -123,20 +117,10 @@ export function useChat(me: ChatUser | null): ChatState {
     }
   }, [enabled, myId]);
 
-  const loadPeople = useCallback(async () => {
-    if (!enabled) return;
-    try {
-      setPeople(await listPeople(myId));
-    } catch (err) {
-      console.error("Không tải được danh sách người dùng:", err);
-    }
-  }, [enabled, myId]);
-
   useEffect(() => {
     if (!enabled) return;
     void loadConversations();
-    void loadPeople();
-  }, [enabled, loadConversations, loadPeople]);
+  }, [enabled, loadConversations]);
 
   // ── Tin nhắn của hội thoại đang mở ────────────────────────────
   useEffect(() => {
@@ -258,38 +242,44 @@ export function useChat(me: ChatUser | null): ChatState {
   useEffect(() => {
     if (!enabled) return;
 
-    const channel = subscribeInbox((row) => {
-      if (row.sender_id === myId) return;
+    const channel = subscribeInbox(
+      (row) => {
+        if (row.sender_id === myId) return;
 
-      let known = false;
-      setConversations((prev) => {
-        known = prev.some((c) => c.id === row.conversation_id);
-        if (!known) return prev;
-        return prev
-          .map((c) =>
-            c.id === row.conversation_id
-              ? {
-                  ...c,
-                  lastMessage: dbMessageToApp(row, myId),
-                  lastMessageAt: row.created_at,
-                  unreadCount:
-                    activeIdRef.current === row.conversation_id ? 0 : c.unreadCount + 1,
-                }
-              : c
-          )
-          .sort(
-            (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
-          );
-      });
+        let known = false;
+        setConversations((prev) => {
+          known = prev.some((c) => c.id === row.conversation_id);
+          if (!known) return prev;
+          return prev
+            .map((c) =>
+              c.id === row.conversation_id
+                ? {
+                    ...c,
+                    lastMessage: dbMessageToApp(row, myId),
+                    lastMessageAt: row.created_at,
+                    unreadCount:
+                      activeIdRef.current === row.conversation_id ? 0 : c.unreadCount + 1,
+                  }
+                : c
+            )
+            .sort(
+              (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+            );
+        });
 
-      // Người khác vừa mở hội thoại mới với mình → nạp lại danh sách
-      if (!known) {
-        void loadConversations();
-        return;
+        // Tin nhắn của một box chat chưa có trong danh sách → nạp lại
+        if (!known) {
+          void loadConversations();
+          return;
+        }
+        // Báo "đã nhận" kể cả khi đang ở box chat khác
+        void markDelivered(row.conversation_id, myId).catch(() => undefined);
+      },
+      (_conversationId, userId) => {
+        // Ai đó vừa dùng link mời của mình → box chat mới xuất hiện ngay
+        if (userId === myId) void loadConversations();
       }
-      // Báo "đã nhận" kể cả khi đang ở hội thoại khác
-      void markDelivered(row.conversation_id, myId).catch(() => undefined);
-    });
+    );
 
     return () => {
       void channel.unsubscribe();
@@ -579,22 +569,6 @@ export function useChat(me: ChatUser | null): ChatState {
   const openConversation = useCallback((id: string) => setActiveId(id), []);
   const closeConversation = useCallback(() => setActiveId(null), []);
 
-  const startDirectChat = useCallback(
-    async (userId: string) => {
-      if (!enabled) return null;
-      try {
-        const conversationId = await getOrCreateDirectConversation(myId, userId);
-        await loadConversations();
-        setActiveId(conversationId);
-        return conversationId;
-      } catch (err) {
-        setError((err as Error).message);
-        return null;
-      }
-    },
-    [enabled, myId, loadConversations]
-  );
-
   const loadOlder = useCallback(async () => {
     if (!enabled || !activeId || !hasMore || loadingMore) return;
     const oldest = rawMessages[0];
@@ -621,13 +595,12 @@ export function useChat(me: ChatUser | null): ChatState {
 
   const refresh = useCallback(async () => {
     await loadConversations();
-    await loadPeople();
     if (activeId) {
       const { messages, hasMore: more } = await getMessages(activeId, myId);
       setRawMessages(messages);
       setHasMore(more);
     }
-  }, [loadConversations, loadPeople, activeId, myId]);
+  }, [loadConversations, activeId, myId]);
 
   // Chỉ giữ tin nhắn của hội thoại đang mở, kèm trạng thái đã gửi/đã nhận/đã xem
   const messages = useMemo(() => {
@@ -650,7 +623,6 @@ export function useChat(me: ChatUser | null): ChatState {
     conversations,
     conversationsLoading,
     totalUnread,
-    people,
     activeId,
     activeConversation,
     messages,
@@ -660,7 +632,6 @@ export function useChat(me: ChatUser | null): ChatState {
     error,
     openConversation,
     closeConversation,
-    startDirectChat,
     loadOlder,
     sendText,
     sendSticker,

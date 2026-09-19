@@ -200,60 +200,6 @@ async function countUnread(
   return count ?? 0;
 }
 
-/** Tìm (hoặc tạo) cuộc trò chuyện 1-1 giữa hai người */
-export async function getOrCreateDirectConversation(
-  myId: string,
-  otherId: string
-): Promise<string> {
-  const { data: myRows, error: myError } = await supabase
-    .from("conversation_members")
-    .select("conversation_id")
-    .eq("user_id", myId);
-  if (myError) throw myError;
-
-  const myIds = ((myRows ?? []) as { conversation_id: string }[]).map((r) => r.conversation_id);
-
-  if (myIds.length > 0) {
-    const { data: shared, error: sharedError } = await supabase
-      .from("conversation_members")
-      .select("conversation_id")
-      .eq("user_id", otherId)
-      .in("conversation_id", myIds);
-    if (sharedError) throw sharedError;
-
-    const sharedIds = ((shared ?? []) as { conversation_id: string }[]).map(
-      (r) => r.conversation_id
-    );
-    if (sharedIds.length > 0) {
-      const { data: existing, error: existingError } = await supabase
-        .from("conversations")
-        .select("id")
-        .in("id", sharedIds)
-        .eq("type", "direct")
-        .limit(1);
-      if (existingError) throw existingError;
-      const found = (existing ?? []) as { id: string }[];
-      if (found.length > 0) return found[0].id;
-    }
-  }
-
-  const { data: created, error: createError } = await supabase
-    .from("conversations")
-    .insert({ type: "direct", created_by: myId })
-    .select("id")
-    .single();
-  if (createError) throw createError;
-
-  const conversationId = (created as { id: string }).id;
-  const { error: memberError } = await supabase.from("conversation_members").insert([
-    { conversation_id: conversationId, user_id: myId },
-    { conversation_id: conversationId, user_id: otherId },
-  ]);
-  if (memberError) throw memberError;
-
-  return conversationId;
-}
-
 // ── Tin nhắn ────────────────────────────────────────────────────
 export async function getHiddenMessageIds(
   conversationId: string,
@@ -490,12 +436,26 @@ export function subscribeConversation(conversationId: string, handlers: Conversa
     .subscribe();
 }
 
-/** Mọi tin nhắn RLS cho phép thấy — dùng cho badge chưa đọc và hội thoại mới */
-export function subscribeInbox(onMessage: (message: DbMessage) => void) {
+/**
+ * Mọi thay đổi RLS cho phép thấy: tin nhắn mới (badge chưa đọc) và việc mình được
+ * thêm vào một box chat mới (người khác vừa dùng link mời của mình).
+ */
+export function subscribeInbox(
+  onMessage: (message: DbMessage) => void,
+  onJoinedConversation: (conversationId: string, userId: string) => void
+) {
   return supabase
     .channel("chat:inbox")
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) =>
       onMessage(payload.new as DbMessage)
+    )
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "conversation_members" },
+      (payload) => {
+        const row = payload.new as { conversation_id: string; user_id: string };
+        onJoinedConversation(row.conversation_id, row.user_id);
+      }
     )
     .subscribe();
 }
