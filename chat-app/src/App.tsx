@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bell, BellOff, Link2, Loader2, MessageCircle, RefreshCw, X } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  Link2,
+  Loader2,
+  MessageCircle,
+  RefreshCw,
+  ShieldCheck,
+  X,
+} from "lucide-react";
 import { useAuth } from "./hooks/useAuth";
 import { useChat } from "./hooks/useChat";
 import { useNotifications } from "./hooks/useNotifications";
@@ -12,6 +21,9 @@ import ConversationList from "./components/ConversationList";
 import ChatThread from "./components/ChatThread";
 import InviteDialog from "./components/InviteDialog";
 import ProfileDialog from "./components/ProfileDialog";
+import PendingApprovalScreen from "./components/PendingApprovalScreen";
+import AdminPanel from "./components/AdminPanel";
+import { listUsersForAdmin } from "./lib/users";
 
 function CenteredCard({ children }: { children: React.ReactNode }) {
   return (
@@ -48,6 +60,8 @@ export default function App() {
 
   const [showProfile, setShowProfile] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [pendingUsers, setPendingUsers] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
   const [pendingInvite, setPendingInvite] = useState<string | null>(null);
@@ -96,6 +110,15 @@ export default function App() {
   useEffect(() => {
     openFromNotification.current = chat.openConversation;
   }, [chat.openConversation]);
+
+  // Admin: đếm số tài khoản đang chờ duyệt để hiện badge
+  const isAdmin = auth.me?.role === "admin" && auth.me.status === "approved";
+  useEffect(() => {
+    if (!isAdmin) return;
+    listUsersForAdmin()
+      .then((list) => setPendingUsers(list.filter((u) => u.status === "pending").length))
+      .catch(() => undefined);
+  }, [isAdmin]);
 
   // Hiện số tin chưa đọc ngay trên tiêu đề tab
   useEffect(() => {
@@ -162,6 +185,18 @@ export default function App() {
 
   const me = auth.me;
 
+  // ── Chưa được admin duyệt ─────────────────────────────────────
+  if (me.status !== "approved") {
+    return (
+      <PendingApprovalScreen
+        me={me}
+        email={auth.session.user.email ?? undefined}
+        onRefresh={auth.refreshProfile}
+        onSignOut={() => void auth.signOut()}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50">
       {/* Header */}
@@ -188,6 +223,21 @@ export default function App() {
               <Link2 size={16} />
               Link mời
             </button>
+
+            {isAdmin && (
+              <button
+                onClick={() => setShowAdmin(true)}
+                className="relative p-2 text-slate-400 hover:bg-slate-100 rounded-xl"
+                title="Duyệt người dùng"
+              >
+                <ShieldCheck size={17} />
+                {pendingUsers > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 bg-amber-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center">
+                    {pendingUsers > 9 ? "9+" : pendingUsers}
+                  </span>
+                )}
+              </button>
+            )}
 
             {notifications.supported && (
               <button
@@ -298,6 +348,14 @@ export default function App() {
       </main>
 
       {showInvite && <InviteDialog userId={me.id} onClose={() => setShowInvite(false)} />}
+
+      {showAdmin && (
+        <AdminPanel
+          myId={me.id}
+          onPendingCount={setPendingUsers}
+          onClose={() => setShowAdmin(false)}
+        />
+      )}
 
       {showProfile && (
         <ProfileDialog

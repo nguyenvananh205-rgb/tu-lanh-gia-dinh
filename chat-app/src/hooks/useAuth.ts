@@ -30,6 +30,8 @@ export interface AuthState {
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (displayName: string, avatarEmoji: string) => Promise<boolean>;
+  /** Nạp lại hồ sơ (dùng để kiểm tra admin đã duyệt chưa) */
+  refreshProfile: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<boolean>;
   /** Đặt mật khẩu mới trong luồng quên mật khẩu */
   updatePassword: (newPassword: string) => Promise<boolean>;
@@ -209,6 +211,11 @@ export function useAuth(): AuthState {
     [session]
   );
 
+  const refreshProfile = useCallback(async () => {
+    const { data } = await supabase.auth.getSession();
+    await loadProfile(data.session);
+  }, [loadProfile]);
+
   const clearMessages = useCallback(() => {
     setError(null);
     setNotice(null);
@@ -226,6 +233,7 @@ export function useAuth(): AuthState {
     signUp,
     signOut,
     updateProfile,
+    refreshProfile,
     requestPasswordReset,
     updatePassword,
     changePassword,

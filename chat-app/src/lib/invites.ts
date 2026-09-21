@@ -79,18 +79,21 @@ export async function acceptInvite(token: string): Promise<string> {
   return data as string;
 }
 
-/** Đọc ?invite=... trên URL, cất lại để dùng sau khi đăng nhập xong */
+/**
+ * Đọc ?invite=... trên URL và cất lại (localStorage, để còn dùng được sau khi
+ * admin duyệt tài khoản, có thể là vài ngày sau).
+ */
 export function captureInviteFromUrl(): string | null {
   const params = new URLSearchParams(window.location.search);
   const token = params.get(INVITE_PARAM);
   if (token) {
-    sessionStorage.setItem(PENDING_KEY, token);
+    localStorage.setItem(PENDING_KEY, token);
     window.history.replaceState({}, "", window.location.pathname);
     return token;
   }
-  return sessionStorage.getItem(PENDING_KEY);
+  return localStorage.getItem(PENDING_KEY);
 }
 
 export function clearPendingInvite(): void {
-  sessionStorage.removeItem(PENDING_KEY);
+  localStorage.removeItem(PENDING_KEY);
 }

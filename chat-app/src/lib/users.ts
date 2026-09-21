@@ -1,11 +1,13 @@
 import { supabase } from "./supabase";
-import type { ChatUser } from "../types";
+import type { AdminUser, ChatUser, UserStatus } from "../types";
 
 interface DbChatUser {
   id: string;
   display_name: string;
   avatar_emoji: string | null;
   last_seen_at: string | null;
+  status?: UserStatus;
+  role?: "member" | "admin";
 }
 
 export function dbUserToApp(db: DbChatUser): ChatUser {
@@ -14,8 +16,12 @@ export function dbUserToApp(db: DbChatUser): ChatUser {
     displayName: db.display_name,
     avatarEmoji: db.avatar_emoji ?? "🙂",
     lastSeenAt: db.last_seen_at,
+    status: db.status,
+    role: db.role,
   };
 }
+
+const MY_PROFILE_COLUMNS = "id, display_name, avatar_emoji, last_seen_at, status, role";
 
 /** Lỗi Postgres khi tên hiển thị bị trùng */
 const UNIQUE_VIOLATION = "23505";
@@ -81,7 +87,7 @@ export async function changePassword(
 export async function getMyProfile(userId: string): Promise<ChatUser | null> {
   const { data, error } = await supabase
     .from("chat_users")
-    .select("id, display_name, avatar_emoji, last_seen_at")
+    .select(MY_PROFILE_COLUMNS)
     .eq("id", userId)
     .maybeSingle();
   if (error) throw error;
@@ -93,7 +99,7 @@ export async function createFallbackProfile(userId: string): Promise<ChatUser> {
   const { data, error } = await supabase
     .from("chat_users")
     .insert({ id: userId, display_name: `Người dùng ${suffix}` })
-    .select("id, display_name, avatar_emoji, last_seen_at")
+    .select(MY_PROFILE_COLUMNS)
     .single();
   if (error) throw error;
   return dbUserToApp(data as DbChatUser);
@@ -116,7 +122,7 @@ export async function updateMyProfile(
     .from("chat_users")
     .update({ display_name: displayName.trim(), avatar_emoji: avatarEmoji })
     .eq("id", userId)
-    .select("id, display_name, avatar_emoji, last_seen_at")
+    .select(MY_PROFILE_COLUMNS)
     .single();
 
   if (error) {
@@ -131,4 +137,39 @@ export async function touchLastSeen(userId: string): Promise<void> {
     .from("chat_users")
     .update({ last_seen_at: new Date().toISOString() })
     .eq("id", userId);
+}
+
+// ── Quản trị (chỉ admin gọi được, server tự kiểm tra) ────────────
+interface DbAdminUser {
+  id: string;
+  display_name: string;
+  avatar_emoji: string | null;
+  status: UserStatus;
+  role: "member" | "admin";
+  email: string | null;
+  created_at: string;
+  last_seen_at: string | null;
+}
+
+export async function listUsersForAdmin(): Promise<AdminUser[]> {
+  const { data, error } = await supabase.rpc("admin_list_users");
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as DbAdminUser[]).map((row) => ({
+    id: row.id,
+    displayName: row.display_name,
+    avatarEmoji: row.avatar_emoji ?? "🙂",
+    status: row.status,
+    role: row.role,
+    email: row.email ?? "",
+    createdAt: row.created_at,
+    lastSeenAt: row.last_seen_at,
+  }));
+}
+
+export async function setUserStatus(userId: string, status: UserStatus): Promise<void> {
+  const { error } = await supabase.rpc("admin_set_user_status", {
+    target: userId,
+    new_status: status,
+  });
+  if (error) throw new Error(error.message);
 }

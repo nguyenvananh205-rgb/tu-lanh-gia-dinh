@@ -6,6 +6,10 @@ riêng.
 
 ## Tài khoản & quyền riêng tư
 
+- **Ai có URL cũng đăng ký được, nhưng phải được admin duyệt mới dùng được app.**
+  Tài khoản mới ở trạng thái *chờ duyệt*: không mở được box chat, không tạo được link
+  mời, không đọc/gửi được tin nhắn (điều kiện `is_approved()` nằm trong mọi RLS policy,
+  không phải chỉ ẩn ở giao diện).
 - **Đăng nhập bằng email + mật khẩu** do người dùng tự đặt (màn hình Đăng nhập / Đăng ký),
   có **Quên mật khẩu** (Supabase gửi email đặt lại) và **Đổi mật khẩu** trong mục Hồ sơ
   (phải nhập đúng mật khẩu hiện tại).
@@ -24,6 +28,26 @@ có nút **Link mới** để thu hồi link cũ.
 **Ảnh/video/voice nằm trong bucket riêng tư.** File chỉ mở được bằng signed URL (hạn 1 giờ)
 mà app xin hộ, và RLS chỉ cấp cho thành viên của đúng box chat chứa file đó — kể cả có URL
 cũ trong tay cũng hết hạn.
+
+## Duyệt người dùng (quyền admin)
+
+Cấp quyền admin cho chính bạn **một lần** sau khi đăng ký, trong Supabase SQL Editor:
+
+```sql
+update public.chat_users set status = 'approved', role = 'admin'
+where id = (select id from auth.users where email = 'email-cua-ban@example.com');
+```
+
+Từ đó, biểu tượng khiên trên header mở trang **Duyệt người dùng** (kèm badge số tài khoản
+đang chờ). Ở đó bạn thấy tên hiển thị, email, thời điểm đăng ký và:
+
+- **Duyệt** → người đó dùng app được ngay (họ bấm "Kiểm tra lại" ở màn chờ là vào).
+- **Từ chối** → vẫn ở ngoài, thấy thông báo liên hệ người gửi link.
+- **Thu hồi** người đang dùng → mất truy cập ngay lập tức, kể cả các box chat cũ.
+
+Người dùng thường không tự sửa được trạng thái hay vai trò của mình: trigger
+`protect_user_privileges` hoàn tác mọi thay đổi không đến từ admin, và hàm
+`admin_set_user_status` tự kiểm tra quyền ở phía database.
 
 ## Số tin nhắn chưa đọc
 
@@ -93,8 +117,10 @@ Checklist trước khi gửi link cho người khác:
 - [ ] **SMTP riêng** (Resend, SendGrid, Gmail SMTP…) nếu dùng quên mật khẩu hoặc bật
       "Confirm email": bộ gửi mail mặc định của Supabase chỉ vài email mỗi giờ và chỉ dành
       cho lúc thử nghiệm.
-- [ ] **Confirm email**: mở cho người lạ thì nên bật (chặn đăng ký email rác) — nhớ làm
-      SMTP trước.
+- [ ] **Cấp quyền admin cho bạn** bằng câu SQL ở mục "Duyệt người dùng" — nếu quên, sẽ
+      không ai duyệt được ai.
+- [ ] **Confirm email**: tuỳ chọn. Đã có bước duyệt của admin nên không bắt buộc; bật thì
+      chắc chắn hơn về email thật, nhưng cần SMTP trước.
 - [ ] **Dung lượng**: gói Supabase miễn phí có hạn mức database / storage / băng thông,
       mà mỗi file cho phép tới 25 MB. Đông người dùng thì hạ `file_size_limit` của bucket
       `chat-media` hoặc lên gói trả phí.
@@ -102,8 +128,9 @@ Checklist trước khi gửi link cho người khác:
       voice, sticker → sửa / thu hồi / xóa → kiểm tra "đã xem" và số tin chưa đọc → quên
       mật khẩu → đổi mật khẩu.
 
-Chưa có (cân nhắc nếu mở rộng ra người lạ): xoá tài khoản & dữ liệu theo yêu cầu, chặn /
-báo cáo người dùng, giới hạn tần suất gửi tin nhắn, và sao lưu dữ liệu.
+Chưa có (cân nhắc nếu mở rộng thêm): xoá tài khoản & dữ liệu theo yêu cầu người dùng,
+giới hạn tần suất gửi tin nhắn, và sao lưu dữ liệu. Việc chặn người quấy rối thì đã làm
+được bằng nút **Thu hồi** trong trang quản trị.
 
 ## Cấu trúc
 
@@ -127,6 +154,8 @@ src/
   data/stickers.ts           2 bộ sticker dựng sẵn
   components/
     AuthScreen.tsx           Đăng nhập / đăng ký / quên mật khẩu
+    PendingApprovalScreen.tsx Màn chờ admin duyệt (hoặc bị từ chối)
+    AdminPanel.tsx           Trang duyệt / từ chối / thu hồi người dùng
     ResetPasswordScreen.tsx  Đặt mật khẩu mới khi mở link trong email
     ProfileDialog.tsx        Đổi tên hiển thị, ảnh đại diện, đổi mật khẩu, đăng xuất
     InviteDialog.tsx         Link mời: copy, tạo link mới

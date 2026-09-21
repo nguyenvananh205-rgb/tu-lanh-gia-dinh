@@ -7,6 +7,19 @@
 insert into auth.users (id, email) values
   (:'A', 'a@example.com'), (:'B', 'b@example.com'), (:'C', 'c@example.com');
 
+-- 0. Mặc định mọi tài khoản mới đều ở trạng thái chờ duyệt
+do $$
+declare n int;
+begin
+  select count(*) into n from public.chat_users where status = 'pending';
+  if n <> 3 then raise exception 'FAIL: tài khoản mới phải ở trạng thái chờ duyệt (% pending)', n; end if;
+end $$;
+\echo '[OK] 0. Tài khoản mới mặc định là chờ admin duyệt'
+
+-- A là admin (mô phỏng bước cấp quyền admin đầu tiên trong SQL Editor), B & C được duyệt
+update public.chat_users set status = 'approved', role = 'admin' where id = :'A';
+update public.chat_users set status = 'approved' where id in (:'B', :'C');
+
 -- 1. Trigger tạo hồ sơ + tên hiển thị tự sinh, không trùng
 do $$
 declare n int;
@@ -232,6 +245,95 @@ begin
   if is_public then raise exception 'FAIL: bucket chat-media vẫn đang public'; end if;
 end $$;
 \echo '[OK] 11. Bucket riêng tư: chỉ thành viên box chat đọc/tải file lên được'
+
+-- 12. Tài khoản chờ duyệt không dùng được gì
+insert into auth.users (id, email)
+values ('44444444-4444-4444-4444-444444444444', 'd@example.com');
+
+select set_config('request.jwt.claim.sub', '44444444-4444-4444-4444-444444444444', false);
+set role authenticated;
+do $$
+declare n int;
+begin
+  -- Không nhận được link mời
+  begin
+    perform public.accept_invite('tok_a2');
+    raise exception 'FAIL: tài khoản chờ duyệt vẫn mở được box chat';
+  exception when others then
+    if sqlerrm not like '%chờ admin duyệt%' then raise; end if;
+  end;
+
+  -- Không tạo được link mời của riêng mình
+  begin
+    insert into public.chat_invites (token, owner_id)
+    values ('tok_d', '44444444-4444-4444-4444-444444444444');
+    raise exception 'FAIL: tài khoản chờ duyệt vẫn tạo được link mời';
+  exception when insufficient_privilege then
+    null;
+  end;
+
+  -- Không tự duyệt cho mình được (trigger chặn)
+  update public.chat_users set status = 'approved', role = 'admin'
+   where id = '44444444-4444-4444-4444-444444444444';
+  select count(*) into n from public.chat_users
+   where id = '44444444-4444-4444-4444-444444444444' and status = 'approved';
+  if n <> 0 then raise exception 'FAIL: người dùng tự duyệt được tài khoản của mình'; end if;
+end $$;
+reset role;
+\echo '[OK] 12. Tài khoản chờ duyệt: không mở box chat, không tạo link, không tự duyệt'
+
+-- 13. Người thường không duyệt được ai; admin thì duyệt được
+select set_config('request.jwt.claim.sub', :'B', false);
+set role authenticated;
+do $$
+declare n int;
+begin
+  begin
+    perform public.admin_set_user_status('44444444-4444-4444-4444-444444444444', 'approved');
+    raise exception 'FAIL: người dùng thường duyệt được tài khoản khác';
+  exception when others then
+    if sqlerrm not like '%Chỉ admin%' then raise; end if;
+  end;
+
+  select count(*) into n from public.admin_list_users();
+  if n <> 0 then raise exception 'FAIL: người dùng thường xem được danh sách quản trị'; end if;
+end $$;
+reset role;
+
+select set_config('request.jwt.claim.sub', :'A', false);
+set role authenticated;
+do $$
+declare n int; st text;
+begin
+  select count(*) into n from public.admin_list_users();
+  if n <> 4 then raise exception 'FAIL: admin phải thấy 4 tài khoản, đang thấy %', n; end if;
+
+  perform public.admin_set_user_status('44444444-4444-4444-4444-444444444444', 'approved');
+  reset role;
+  select status into st from public.chat_users where id = '44444444-4444-4444-4444-444444444444';
+  if st <> 'approved' then raise exception 'FAIL: admin duyệt không ăn (status = %)', st; end if;
+end $$;
+reset role;
+\echo '[OK] 13. Chỉ admin xem được danh sách tài khoản và duyệt được'
+
+-- 14. Bị thu hồi quyền thì mất sạch quyền đọc, dù vẫn là thành viên box chat
+select set_config('request.jwt.claim.sub', :'A', false);
+set role authenticated;
+select public.admin_set_user_status(:'C', 'rejected');
+reset role;
+
+select set_config('request.jwt.claim.sub', :'C', false);
+set role authenticated;
+do $$
+declare n int;
+begin
+  select count(*) into n from public.conversations;
+  if n <> 0 then raise exception 'FAIL: tài khoản bị thu hồi vẫn thấy % box chat', n; end if;
+  select count(*) into n from public.messages;
+  if n <> 0 then raise exception 'FAIL: tài khoản bị thu hồi vẫn đọc được tin nhắn'; end if;
+end $$;
+reset role;
+\echo '[OK] 14. Thu hồi quyền là mất truy cập ngay, kể cả box chat cũ'
 
 \echo ''
 \echo '===== TẤT CẢ KIỂM THỬ ĐỀU ĐẠT ====='

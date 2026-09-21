@@ -6,9 +6,16 @@
 --   Authentication > Sign In / Providers > Email: BẬT.
 --   Để đăng ký xong vào dùng được ngay, TẮT "Confirm email".
 --
--- Nguyên tắc bảo mật: mỗi người chỉ đọc được hội thoại mà mình là thành viên,
--- và chỉ thấy hồ sơ của người đang trò chuyện cùng. Muốn mở box chat mới thì
--- phải có link mời của người kia (bảng chat_invites + hàm accept_invite).
+-- Nguyên tắc bảo mật:
+--   * Ai có URL cũng đăng ký được, nhưng tài khoản ở trạng thái "pending" và
+--     KHÔNG làm được gì cho tới khi admin duyệt (hàm is_approved trong mọi policy).
+--   * Mỗi người chỉ đọc được hội thoại mà mình là thành viên, và chỉ thấy hồ sơ
+--     của người đang trò chuyện cùng.
+--   * Muốn mở box chat mới thì phải có link mời (chat_invites + accept_invite).
+--
+-- CẤP QUYỀN ADMIN ĐẦU TIÊN (chạy trong SQL Editor sau khi bạn đã đăng ký):
+--   update public.chat_users set status = 'approved', role = 'admin'
+--   where id = (select id from auth.users where email = 'email-cua-ban@example.com');
 --
 -- 10 chức năng nhỏ được phủ bởi schema này:
 --   1. Văn bản              → messages.kind = 'text'
@@ -30,6 +37,28 @@ create table if not exists public.chat_users (
   created_at timestamptz default now(),
   last_seen_at timestamptz default now()
 );
+
+-- Trạng thái duyệt: người mới đăng ký phải được admin duyệt mới dùng được app
+alter table public.chat_users add column if not exists status text not null default 'pending';
+alter table public.chat_users add column if not exists role text not null default 'member';
+alter table public.chat_users add column if not exists approved_at timestamptz;
+alter table public.chat_users add column if not exists approved_by uuid;
+
+do $$
+begin
+  alter table public.chat_users
+    add constraint chat_users_status_check check (status in ('pending', 'approved', 'rejected'));
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  alter table public.chat_users
+    add constraint chat_users_role_check check (role in ('member', 'admin'));
+exception when duplicate_object then null;
+end $$;
+
+create index if not exists chat_users_status_idx on public.chat_users (status);
 
 -- Tên hiển thị không được trùng (không phân biệt hoa/thường)
 create unique index if not exists chat_users_display_name_unique
@@ -161,6 +190,48 @@ language sql security definer stable set search_path = public as $$
   );
 $$;
 
+-- Tài khoản của tôi đã được duyệt chưa?
+create or replace function public.is_approved()
+returns boolean
+language sql security definer stable set search_path = public as $$
+  select exists (
+    select 1 from public.chat_users u
+    where u.id = auth.uid() and u.status = 'approved'
+  );
+$$;
+
+-- Tôi có phải admin (và đã được duyệt) không?
+create or replace function public.is_admin()
+returns boolean
+language sql security definer stable set search_path = public as $$
+  select exists (
+    select 1 from public.chat_users u
+    where u.id = auth.uid() and u.role = 'admin' and u.status = 'approved'
+  );
+$$;
+
+-- Người dùng thường không được tự sửa trạng thái duyệt / vai trò của mình.
+-- auth.uid() null nghĩa là đang chạy từ SQL Editor hoặc service role → cho phép
+-- (dùng để cấp quyền admin đầu tiên).
+create or replace function public.protect_user_privileges()
+returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is not null and not public.is_admin() then
+    new.status := old.status;
+    new.role := old.role;
+    new.approved_at := old.approved_at;
+    new.approved_by := old.approved_by;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists chat_users_protect_privileges on public.chat_users;
+create trigger chat_users_protect_privileges
+  before update on public.chat_users
+  for each row execute function public.protect_user_privileges();
+
 -- Tôi có đang ở chung hội thoại nào với người này không?
 create or replace function public.shares_conversation_with(target uuid)
 returns boolean
@@ -201,6 +272,9 @@ begin
   if me is null then
     raise exception 'Bạn cần đăng nhập trước';
   end if;
+  if not public.is_approved() then
+    raise exception 'Tài khoản của bạn đang chờ admin duyệt';
+  end if;
 
   select * into inv from public.chat_invites where token = p_token;
   if not found then
@@ -239,6 +313,55 @@ $$;
 
 grant execute on function public.accept_invite(text) to authenticated;
 
+-- ── Quản trị: duyệt / từ chối tài khoản ──────────────────────────
+-- Trả về rỗng với người không phải admin. Email lấy từ auth.users nên chỉ admin
+-- thấy, người chat cùng không đọc được.
+create or replace function public.admin_list_users()
+returns table (
+  id uuid,
+  display_name text,
+  avatar_emoji text,
+  status text,
+  role text,
+  email text,
+  created_at timestamptz,
+  last_seen_at timestamptz
+)
+language sql security definer stable set search_path = public as $$
+  select u.id, u.display_name, u.avatar_emoji, u.status, u.role,
+         au.email::text, u.created_at, u.last_seen_at
+  from public.chat_users u
+  join auth.users au on au.id = u.id
+  where public.is_admin()
+  order by (u.status = 'pending') desc, u.created_at desc;
+$$;
+
+grant execute on function public.admin_list_users() to authenticated;
+
+create or replace function public.admin_set_user_status(target uuid, new_status text)
+returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Chỉ admin mới được duyệt tài khoản';
+  end if;
+  if new_status not in ('pending', 'approved', 'rejected') then
+    raise exception 'Trạng thái không hợp lệ';
+  end if;
+  if target = auth.uid() and new_status <> 'approved' then
+    raise exception 'Không thể tự khoá tài khoản admin của chính mình';
+  end if;
+
+  update public.chat_users
+     set status = new_status,
+         approved_at = case when new_status = 'approved' then now() else null end,
+         approved_by = case when new_status = 'approved' then auth.uid() else null end
+   where id = target;
+end;
+$$;
+
+grant execute on function public.admin_set_user_status(uuid, text) to authenticated;
+
 -- ── RLS ──────────────────────────────────────────────────────────
 alter table public.chat_users enable row level security;
 alter table public.chat_invites enable row level security;
@@ -264,21 +387,27 @@ create policy "chat_users_update_self" on public.chat_users
 -- Link mời: chỉ chủ link tự quản lý (người nhận dùng hàm accept_invite)
 drop policy if exists "chat_invites_own" on public.chat_invites;
 create policy "chat_invites_own" on public.chat_invites
-  for all to authenticated using (owner_id = auth.uid()) with check (owner_id = auth.uid());
+  for all to authenticated
+  using (owner_id = auth.uid() and public.is_approved())
+  with check (owner_id = auth.uid() and public.is_approved());
 
 -- Hội thoại: chỉ thành viên đọc được
 drop policy if exists "conversations_member_read" on public.conversations;
 create policy "conversations_member_read" on public.conversations
-  for select to authenticated using (public.is_conversation_member(id));
+  for select to authenticated
+  using (public.is_approved() and public.is_conversation_member(id));
 
 -- Thành viên: thấy người cùng hội thoại, chỉ tự sửa mốc đã nhận/đã xem của mình
 drop policy if exists "conversation_members_read" on public.conversation_members;
 create policy "conversation_members_read" on public.conversation_members
-  for select to authenticated using (public.is_conversation_member(conversation_id));
+  for select to authenticated
+  using (public.is_approved() and public.is_conversation_member(conversation_id));
 
 drop policy if exists "conversation_members_update_self" on public.conversation_members;
 create policy "conversation_members_update_self" on public.conversation_members
-  for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+  for update to authenticated
+  using (user_id = auth.uid() and public.is_approved())
+  with check (user_id = auth.uid() and public.is_approved());
 
 -- Rời hội thoại (chỉ xoá chính mình)
 drop policy if exists "conversation_members_delete_self" on public.conversation_members;
@@ -291,12 +420,15 @@ create policy "conversation_members_delete_self" on public.conversation_members
 -- Tin nhắn: thành viên đọc; chỉ người gửi sửa / thu hồi / xoá hẳn
 drop policy if exists "messages_member_read" on public.messages;
 create policy "messages_member_read" on public.messages
-  for select to authenticated using (public.is_conversation_member(conversation_id));
+  for select to authenticated
+  using (public.is_approved() and public.is_conversation_member(conversation_id));
 
 drop policy if exists "messages_send" on public.messages;
 create policy "messages_send" on public.messages
   for insert to authenticated with check (
-    sender_id = auth.uid() and public.is_conversation_member(conversation_id)
+    sender_id = auth.uid()
+    and public.is_approved()
+    and public.is_conversation_member(conversation_id)
   );
 
 drop policy if exists "messages_sender_update" on public.messages;
@@ -357,6 +489,7 @@ create policy "chat_media_read" on storage.objects
   for select to authenticated
   using (
     bucket_id = 'chat-media'
+    and public.is_approved()
     and public.is_conversation_member(public.conversation_id_from_storage_name(name))
   );
 
@@ -365,6 +498,7 @@ create policy "chat_media_upload" on storage.objects
   for insert to authenticated
   with check (
     bucket_id = 'chat-media'
+    and public.is_approved()
     and public.is_conversation_member(public.conversation_id_from_storage_name(name))
   );
 

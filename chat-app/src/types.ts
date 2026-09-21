@@ -3,11 +3,29 @@ export type MessageKind = "text" | "image" | "video" | "voice" | "sticker" | "gi
 /** Trạng thái của tin nhắn mình gửi đi (chức năng "đã gửi/đã nhận/đã xem") */
 export type MessageStatus = "sending" | "sent" | "delivered" | "seen" | "failed";
 
+export type UserStatus = "pending" | "approved" | "rejected";
+export type UserRole = "member" | "admin";
+
 export interface ChatUser {
   id: string;
   displayName: string;
   avatarEmoji: string;
   lastSeenAt?: string | null;
+  /** Chỉ có với hồ sơ của chính mình */
+  status?: UserStatus;
+  role?: UserRole;
+}
+
+/** Dòng trong trang quản trị (chỉ admin đọc được, kèm email) */
+export interface AdminUser {
+  id: string;
+  displayName: string;
+  avatarEmoji: string;
+  status: UserStatus;
+  role: UserRole;
+  email: string;
+  createdAt: string;
+  lastSeenAt: string | null;
 }
 
 /** Tóm tắt tin nhắn được trả lời, hiển thị trong khung quote */
