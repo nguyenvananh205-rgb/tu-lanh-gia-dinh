@@ -63,7 +63,11 @@ export function useNotifications(): NotificationsState {
     ({ title, body, tag, onClick }: NotifyOptions) => {
       if (!supported || !enabled || permission !== "granted") return;
       try {
-        const notification = new Notification(title, { body, tag, icon: "/favicon.svg" });
+        const notification = new Notification(title, {
+          body,
+          tag,
+          icon: `${import.meta.env.BASE_URL}favicon.svg`,
+        });
         notification.onclick = () => {
           window.focus();
           onClick?.();

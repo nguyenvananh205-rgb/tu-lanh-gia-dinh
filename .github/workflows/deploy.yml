@@ -2,7 +2,11 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, claude/fridge-inventory-management-nl78t, claude/homepage-animation-c2fwsj]
+    branches:
+      - main
+      - claude/fridge-inventory-management-nl78t
+      - claude/homepage-animation-c2fwsj
+      - claude/messaging-features-es2k77
   workflow_dispatch:
 
 permissions:
@@ -25,9 +29,42 @@ jobs:
           node-version: 22
           cache: npm
 
+      # ── App Tủ lạnh gia đình → /Vanh/ ──────────────────────────
       - run: npm ci
 
       - run: npm run build
+
+      # ── App Nhắn tin → /Vanh/chat/ ────────────────────────────
+      - name: Kiểm tra cấu hình Supabase cho app nhắn tin
+        env:
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "::warning::Chưa đặt VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY trong repo."
+            echo "::warning::App nhắn tin vẫn deploy nhưng sẽ hiện màn 'Cần cấu hình Supabase'."
+          else
+            echo "Đã có cấu hình Supabase cho app nhắn tin."
+          fi
+
+      - name: Cài dependency cho app nhắn tin
+        working-directory: chat-app
+        run: npm ci
+
+      - name: Build app nhắn tin
+        working-directory: chat-app
+        env:
+          VITE_BASE_PATH: /Vanh/chat/
+          # Anon key của Supabase vốn là khoá công khai (dữ liệu được RLS bảo vệ),
+          # để trong secrets cho gọn chứ không phải vì nó bí mật.
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_TENOR_API_KEY: ${{ vars.VITE_TENOR_API_KEY || secrets.VITE_TENOR_API_KEY }}
+        run: npm run build
+
+      - name: Gộp app nhắn tin vào /chat
+        run: |
+          mkdir -p dist/chat
+          cp -r chat-app/dist/. dist/chat/
 
       - uses: actions/upload-pages-artifact@v3
         with:

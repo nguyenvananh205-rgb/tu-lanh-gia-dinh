@@ -104,29 +104,52 @@ Trên Supabase:
 Thử nhắn tin giữa 2 người: đăng ký 2 tài khoản ở 2 trình duyệt (hoặc một cửa sổ ẩn danh),
 bên A bấm **Mở box chat mới bằng link** → copy link → bên B mở link đó.
 
-## Đưa app cho người dùng thật
+## Deploy
 
-App là web tĩnh (`npm run build` ra thư mục `dist`), deploy lên Vercel / Netlify /
-Cloudflare Pages đều được, không cần server riêng. Nếu deploy vào đường dẫn con
-(ví dụ GitHub Pages `/ten-repo/`) thì đặt thêm `base: '/ten-repo/'` trong `vite.config.ts`.
+Repo đã có sẵn workflow `.github/workflows/deploy.yml` build cả hai app và đẩy lên
+GitHub Pages trong một lần:
 
-Checklist trước khi gửi link cho người khác:
+| App | Đường dẫn |
+|-----|-----------|
+| Tủ lạnh gia đình | `https://<tài-khoản>.github.io/Vanh/` |
+| Nhắn tin | `https://<tài-khoản>.github.io/Vanh/chat/` |
 
-- [ ] **Auth → URL Configuration**: đặt **Site URL** và **Redirect URLs** đúng domain đã
-      deploy. Bỏ qua bước này thì link đặt lại mật khẩu trong email sẽ trỏ về `localhost`.
+Workflow chạy mỗi khi push vào `main` (và các nhánh được liệt kê trong file), hoặc bấm
+**Run workflow** thủ công trong tab Actions.
+
+Cần làm một lần trên GitHub:
+
+1. **Settings → Pages → Source: GitHub Actions.**
+2. **Settings → Secrets and variables → Actions**, thêm 2 giá trị (dùng *Variables* hay
+   *Secrets* đều được, workflow đọc cả hai):
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - (tuỳ chọn) `VITE_TENOR_API_KEY` để tìm GIF
+   Thiếu 2 giá trị đầu thì app vẫn deploy nhưng hiện màn "Cần cấu hình Supabase".
+3. **Supabase → Authentication → URL Configuration**: đặt **Site URL** và **Redirect URLs**
+   thành `https://<tài-khoản>.github.io/Vanh/chat/`, nếu không link đặt lại mật khẩu trong
+   email sẽ trỏ sai chỗ.
+
+Anon key của Supabase là khoá công khai — nó nằm trong file JS đã build, và dữ liệu được
+bảo vệ bằng RLS chứ không phải bằng việc giấu key.
+
+Muốn deploy lên chỗ khác (Vercel / Netlify / Cloudflare Pages / domain riêng): app là web
+tĩnh, chỉ cần `npm run build` rồi trỏ tới thư mục `dist`, không cần đặt `VITE_BASE_PATH`
+(mặc định là `/`). Nhớ cập nhật lại Site URL / Redirect URLs cho khớp domain mới.
+
+## Trước khi mời người dùng thật
+
+- [ ] **Cấp quyền admin cho bạn** bằng câu SQL ở mục "Duyệt người dùng" — nếu quên, sẽ
+      không ai duyệt được ai.
 - [ ] **SMTP riêng** (Resend, SendGrid, Gmail SMTP…) nếu dùng quên mật khẩu hoặc bật
       "Confirm email": bộ gửi mail mặc định của Supabase chỉ vài email mỗi giờ và chỉ dành
       cho lúc thử nghiệm.
-- [ ] **Cấp quyền admin cho bạn** bằng câu SQL ở mục "Duyệt người dùng" — nếu quên, sẽ
-      không ai duyệt được ai.
-- [ ] **Confirm email**: tuỳ chọn. Đã có bước duyệt của admin nên không bắt buộc; bật thì
-      chắc chắn hơn về email thật, nhưng cần SMTP trước.
 - [ ] **Dung lượng**: gói Supabase miễn phí có hạn mức database / storage / băng thông,
       mà mỗi file cho phép tới 25 MB. Đông người dùng thì hạ `file_size_limit` của bucket
       `chat-media` hoặc lên gói trả phí.
-- [ ] **Chạy thử một vòng thật**: đăng ký 2 tài khoản → gửi link mời → nhắn text, ảnh,
-      voice, sticker → sửa / thu hồi / xóa → kiểm tra "đã xem" và số tin chưa đọc → quên
-      mật khẩu → đổi mật khẩu.
+- [ ] **Chạy thử một vòng thật**: đăng ký 2 tài khoản → duyệt trong trang quản trị → gửi
+      link mời → nhắn text, ảnh, voice, sticker → sửa / thu hồi / xóa → kiểm tra "đã xem"
+      và số tin chưa đọc → quên mật khẩu → đổi mật khẩu.
 
 Chưa có (cân nhắc nếu mở rộng thêm): xoá tài khoản & dữ liệu theo yêu cầu người dùng,
 giới hạn tần suất gửi tin nhắn, và sao lưu dữ liệu. Việc chặn người quấy rối thì đã làm

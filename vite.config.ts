@@ -28,6 +28,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // App Nhắn tin nằm ở /Vanh/chat/ — không để service worker của app tủ lạnh
+        // trả về index.html của mình cho các đường dẫn đó
+        navigateFallbackDenylist: [/^\/Vanh\/chat\//],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\.anthropic\.com\/.*/i,
