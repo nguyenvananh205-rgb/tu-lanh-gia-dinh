@@ -117,18 +117,51 @@ GitHub Pages trong một lần:
 Workflow chạy mỗi khi push vào `main` (và các nhánh được liệt kê trong file), hoặc bấm
 **Run workflow** thủ công trong tab Actions.
 
-Cần làm một lần trên GitHub:
+### Cần làm một lần (3 việc, khoảng 10 phút)
 
-1. **Settings → Pages → Source: GitHub Actions.**
-2. **Settings → Secrets and variables → Actions**, thêm 2 giá trị (dùng *Variables* hay
-   *Secrets* đều được, workflow đọc cả hai):
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   - (tuỳ chọn) `VITE_TENOR_API_KEY` để tìm GIF
-   Thiếu 2 giá trị đầu thì app vẫn deploy nhưng hiện màn "Cần cấu hình Supabase".
-3. **Supabase → Authentication → URL Configuration**: đặt **Site URL** và **Redirect URLs**
-   thành `https://<tài-khoản>.github.io/Vanh/chat/`, nếu không link đặt lại mật khẩu trong
-   email sẽ trỏ sai chỗ.
+**1. Cho phép nhánh được deploy** — GitHub chỉ cho nhánh mặc định đẩy lên Pages, nhánh
+khác sẽ bị chặn với thông báo *"Branch ... is not allowed to deploy to github-pages due to
+environment protection rules"*.
+
+> Settings → Environments → **github-pages** → mục *Deployment branches and tags* →
+> **Add deployment branch or tag rule** → gõ đúng tên nhánh (ví dụ
+> `claude/messaging-features-es2k77`) → Add rule.
+
+Hoặc merge nhánh vào nhánh mặc định thì không cần bước này.
+
+**2. Lấy khoá Supabase và dán vào GitHub**
+
+Trong Supabase Dashboard, chọn project của bạn:
+
+- **Project URL**: Settings (bánh răng) → **API** (bản mới gọi là *Data API*). Dòng
+  *Project URL*, dạng `https://abcdxyz.supabase.co`.
+- **Anon key**: cùng trang, mục *Project API keys* → khoá tên **anon / public**
+  (bản mới gọi là *publishable key*). Đây là khoá dành cho trình duyệt — **không** lấy
+  `service_role`, khoá đó bỏ qua RLS và không bao giờ được đưa vào app.
+
+Rồi sang GitHub, repo này:
+
+> Settings → Secrets and variables → **Actions** → tab **Variables** →
+> **New repository variable**, tạo 2 biến:
+>
+> | Tên | Giá trị |
+> |-----|---------|
+> | `VITE_SUPABASE_URL` | Project URL vừa copy |
+> | `VITE_SUPABASE_ANON_KEY` | anon / public key |
+>
+> (Đặt ở tab *Secrets* cũng chạy — workflow đọc cả hai chỗ. Muốn tìm GIF thì thêm
+> `VITE_TENOR_API_KEY`.)
+
+**3. Trỏ Supabase về đúng URL đã deploy**
+
+> Supabase → Authentication → **URL Configuration** → đặt **Site URL** và thêm vào
+> **Redirect URLs**: `https://<tài-khoản>.github.io/Vanh/chat/`
+
+Thiếu bước này thì link đặt lại mật khẩu trong email sẽ trỏ về `localhost`.
+
+Xong 3 bước thì vào tab **Actions → Deploy to GitHub Pages → Run workflow** (hoặc push
+thêm commit) để chạy lại. Bước *"Kiểm tra cấu hình Supabase"* trong log sẽ in
+"Đã có cấu hình Supabase" nếu biến đã được đọc đúng.
 
 Anon key của Supabase là khoá công khai — nó nằm trong file JS đã build, và dữ liệu được
 bảo vệ bằng RLS chứ không phải bằng việc giấu key.
