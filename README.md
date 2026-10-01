@@ -75,6 +75,3 @@ Repo còn chứa một app độc lập, không liên quan tới app tủ lạnh
 [`chat-app/`](chat-app/README.md) — **Nhắn tin**, chat 1-1 riêng tư với tài khoản riêng,
 schema Supabase riêng và admin duyệt người dùng. Cùng workflow deploy, chạy ở
 `/tu-lanh-gia-dinh/chat/`.
-
-Riêng tab "Nhắn tin" bên trong app tủ lạnh là một module khác, xem
-[`docs/messaging.md`](docs/messaging.md).

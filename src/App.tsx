@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   RefrigeratorIcon, CalendarDays, ShoppingCart, Lightbulb,
-  LayoutDashboard, Settings, Plus, Share2, LogOut, UserCheck, RefreshCw,
-  MessageCircle
+  LayoutDashboard, Settings, Plus, Share2, LogOut, UserCheck, RefreshCw
 } from "lucide-react";
 import { DEFAULT_RECIPES } from "./data/defaultRecipes";
-import type { FoodItem, MealPlan, ShoppingItem, Recipe, Fridge, UserProfile } from "./types";
+import type { FoodItem, MealPlan, ShoppingItem, Recipe, Fridge } from "./types";
 import Dashboard from "./components/Dashboard";
 import FridgeInventory from "./components/FridgeInventory";
 import ApiKeySettings from "./components/ApiKeySettings";
@@ -19,12 +18,10 @@ import SplashScreen from "./components/SplashScreen";
 import AuthScreen from "./components/AuthScreen";
 import FridgeSelector from "./components/FridgeSelector";
 import ShareCodePanel from "./components/ShareCodePanel";
-import ChatTab from "./components/chat/ChatTab";
 import { useNotifications } from "./hooks/useNotifications";
 import { startOnboardingTour } from "./hooks/useOnboarding";
 import { useAuth } from "./hooks/useAuth";
 import { useFridgeData, useLocalFridgeStore } from "./hooks/useFridgeData";
-import { useMessaging } from "./hooks/useMessaging";
 import { isSupabaseConfigured } from "./lib/supabase";
 import type { FoodCategory } from "./types";
 
@@ -34,7 +31,6 @@ const TABS = [
   { id: "suggestions", label: "Gợi ý món", icon: Lightbulb },
   { id: "planner", label: "Kế hoạch", icon: CalendarDays },
   { id: "shopping", label: "Mua sắm", icon: ShoppingCart },
-  { id: "chat", label: "Nhắn tin", icon: MessageCircle },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
@@ -59,14 +55,12 @@ function MainApp({
   activeFridge,
   guestFridgeId,
   guestFridgeName,
-  me,
   onSwitchFridge,
   onShowRegister,
 }: {
   activeFridge: Fridge | null;
   guestFridgeId: string | null;
   guestFridgeName: string | null;
-  me: UserProfile | null;
   onSwitchFridge: () => void;
   onShowRegister?: () => void;
 }) {
@@ -99,9 +93,6 @@ function MainApp({
 
   // Local store (fallback when Supabase not configured)
   const localStore = useLocalFridgeStore();
-
-  // Nhắn tin (chat 1-1 giữa các thành viên của tủ lạnh)
-  const chat = useMessaging(isSupabaseConfigured ? fridgeId ?? null : null, me);
 
   // Choose data source
   const foods = isSupabaseConfigured ? fridgeData.foods : localStore.foods;
@@ -229,7 +220,6 @@ function MainApp({
     try {
       if (isSupabaseConfigured) {
         await fridgeData.refresh();
-        if (chat.enabled) await chat.refresh();
       } else {
         localStore.reload();
       }
@@ -237,7 +227,7 @@ function MainApp({
     } finally {
       setRefreshing(false);
     }
-  }, [refreshing, fridgeData, localStore, chat]);
+  }, [refreshing, fridgeData, localStore]);
 
   const uncheckedShopping = shopping.filter((i) => !i.checked).length;
 
@@ -247,7 +237,6 @@ function MainApp({
     suggestions: "Gợi ý món ăn",
     planner: "Kế hoạch bữa ăn",
     shopping: "Danh sách mua sắm",
-    chat: "Nhắn tin",
   };
 
   const showFab = activeTab === "dashboard" || activeTab === "fridge";
@@ -384,11 +373,6 @@ function MainApp({
                     {uncheckedShopping > 9 ? "9+" : uncheckedShopping}
                   </span>
                 )}
-                {id === "chat" && chat.totalUnread > 0 && (
-                  <span className="absolute -top-0.5 right-1.5 min-w-[16px] h-4 px-1 bg-rose-500 text-white rounded-full text-[10px] flex items-center justify-center font-bold">
-                    {chat.totalUnread > 9 ? "9+" : chat.totalUnread}
-                  </span>
-                )}
               </button>
             ))}
           </div>
@@ -447,15 +431,6 @@ function MainApp({
               onToggle={handleToggleShopping}
               onDelete={handleDeleteShopping}
               onClearChecked={handleClearChecked}
-            />
-          )}
-          {activeTab === "chat" && (
-            <ChatTab
-              chat={chat}
-              me={me}
-              isGuest={isGuest}
-              onShowRegister={onShowRegister}
-              onShare={isOwner && activeFridge ? () => setShowSharePanel(true) : undefined}
             />
           )}
         </div>
@@ -562,7 +537,6 @@ export default function App() {
         activeFridge={null}
         guestFridgeId="local"
         guestFridgeName="Tủ lạnh gia đình"
-        me={null}
         onSwitchFridge={() => {}}
       />
     );
@@ -617,7 +591,6 @@ export default function App() {
       activeFridge={activeFridge}
       guestFridgeId={guestFridgeId}
       guestFridgeName={guestFridgeName}
-      me={auth.user}
       onSwitchFridge={() => setShowFridgeSelector(true)}
       onShowRegister={() => setShowRegisterForGuest(true)}
     />
