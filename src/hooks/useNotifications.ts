@@ -32,8 +32,8 @@ export function useNotifications(foods: FoodItem[]) {
       if (expired.length > 0) {
         new Notification("⚠️ Tủ lạnh: Thực phẩm đã hỏng!", {
           body: expired.map((f) => f.name).join(", ") + " — Cần bỏ đi ngay",
-          icon: "/Vanh/icons/icon-192.png",
-          badge: "/Vanh/icons/icon-192.png",
+          icon: `${import.meta.env.BASE_URL}icons/icon-192.png`,
+          badge: `${import.meta.env.BASE_URL}icons/icon-192.png`,
           tag: "fridge-expired",
         });
       }
@@ -43,7 +43,7 @@ export function useNotifications(foods: FoodItem[]) {
           () =>
             new Notification("🔔 Tủ lạnh: Hết hạn hôm nay/ngày mai!", {
               body: critical.map((f) => `${f.name} (còn ${getDaysUntilExpiry(f.expiryDate)}n)`).join(", "),
-              icon: "/Vanh/icons/icon-192.png",
+              icon: `${import.meta.env.BASE_URL}icons/icon-192.png`,
               tag: "fridge-critical",
             }),
           500,
@@ -53,7 +53,7 @@ export function useNotifications(foods: FoodItem[]) {
       if (soon.length > 0 && expired.length === 0 && critical.length === 0) {
         new Notification("📅 Tủ lạnh: Sắp hết hạn", {
           body: soon.map((f) => `${f.name} (còn ${getDaysUntilExpiry(f.expiryDate)} ngày)`).join(", "),
-          icon: "/Vanh/icons/icon-192.png",
+          icon: `${import.meta.env.BASE_URL}icons/icon-192.png`,
           tag: "fridge-soon",
         });
       }

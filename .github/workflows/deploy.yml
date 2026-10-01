@@ -2,11 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches:
-      - main
-      - claude/fridge-inventory-management-nl78t
-      - claude/homepage-animation-c2fwsj
-      - claude/messaging-features-es2k77
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -33,6 +29,8 @@ jobs:
       - run: npm ci
 
       - run: npm run build
+        env:
+          VITE_BASE_PATH: /tu-lanh-gia-dinh/
 
       # ── App Nhắn tin → /Vanh/chat/ ────────────────────────────
       - name: Kiểm tra cấu hình Supabase cho app nhắn tin
@@ -53,7 +51,7 @@ jobs:
       - name: Build app nhắn tin
         working-directory: chat-app
         env:
-          VITE_BASE_PATH: /Vanh/chat/
+          VITE_BASE_PATH: /tu-lanh-gia-dinh/chat/
           # Anon key của Supabase vốn là khoá công khai (dữ liệu được RLS bảo vệ),
           # để trong secrets cho gọn chứ không phải vì nó bí mật.
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}

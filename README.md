@@ -1,89 +1,80 @@
 # Tủ lạnh gia đình
 
-Ứng dụng quản lý thực phẩm tủ lạnh, kế hoạch bữa ăn, danh sách mua sắm và
-**nhắn tin 1-1 giữa các thành viên trong nhà** (React + TypeScript + Vite + Supabase).
+Ứng dụng web (PWA) quản lý thực phẩm trong tủ lạnh, lên kế hoạch bữa ăn và danh sách mua sắm cho gia đình. Cài được lên điện thoại như một app.
 
-- Cấu hình Supabase: `supabase/schema.sql`
-- Chức năng nhắn tin trong app tủ lạnh: chạy thêm `supabase/messaging-schema.sql`,
-  chi tiết ở [`docs/messaging.md`](docs/messaging.md)
+## Tính năng chính
 
-Repo này còn chứa một app độc lập, không liên quan tới app tủ lạnh:
+- **Tủ lạnh**: quản lý thực phẩm theo ngăn và danh mục, theo dõi hạn sử dụng, có thông báo khi sắp hết hạn
+- **Thêm nhanh**: nhập bằng giọng nói hoặc chụp ảnh, AI (Claude) tự nhận diện thực phẩm
+- **Bữa ăn**: kế hoạch bữa ăn, gợi ý món từ những gì đang có trong tủ, quản lý công thức
+- **Mua sắm**: danh sách mua sắm kèm gợi ý nên mua gì
+- **Chia sẻ**: đăng nhập, tạo tủ lạnh riêng, mời người nhà bằng mã hoặc link `?join=CODE`
+- **Chế độ khách**: dùng ngay không cần đăng nhập, dữ liệu lưu trên máy
 
-- [`chat-app/`](chat-app/README.md) — **Nhắn tin**: app chat 1-1 riêng biệt
-  (React + Vite + Supabase), có package.json và schema riêng.
+## Công nghệ
 
----
+React 19 · TypeScript · Vite · Tailwind CSS · Supabase (auth + database) · vite-plugin-pwa · driver.js (hướng dẫn lần đầu)
 
-# React + TypeScript + Vite
+## Chạy trên máy
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+cp .env.example .env.local   # điền thông tin Supabase (không bắt buộc)
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Nếu không có Supabase, app vẫn chạy ở chế độ khách (dữ liệu lưu trong trình duyệt).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Cài đặt Supabase (cho đăng nhập và chia sẻ)
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. Tạo project tại [supabase.com](https://supabase.com)
+2. Mở **SQL Editor**, chạy toàn bộ file [`supabase/schema.sql`](supabase/schema.sql)
+3. Điền `VITE_SUPABASE_URL` và `VITE_SUPABASE_ANON_KEY` vào `.env.local`
+
+### API key cho AI
+
+Tính năng nhận diện ảnh và gợi ý dùng Claude API. Người dùng tự nhập API key trong phần **Cài đặt** của app. Key chỉ lưu trên trình duyệt, không nằm trong mã nguồn.
+
+## Cấu trúc thư mục
+
 ```
+├── src/
+│   ├── components/   # Các màn hình và thành phần giao diện
+│   ├── hooks/        # Logic dùng chung (auth, dữ liệu tủ lạnh, giọng nói, thông báo)
+│   ├── utils/        # Xử lý ảnh/giọng nói, chấm điểm món ăn, gợi ý mua sắm
+│   ├── data/         # Dữ liệu mặc định (thực phẩm, công thức, bữa ăn)
+│   ├── lib/          # Kết nối Supabase
+│   ├── App.tsx       # Khung app và điều hướng tab
+│   └── types.ts      # Kiểu dữ liệu
+├── public/           # Icon, hình ảnh tĩnh
+├── supabase/         # Schema database
+├── docs/
+│   └── conversations/  # Lịch sử hội thoại khi phát triển
+└── .github/workflows/  # Tự động build và deploy lên GitHub Pages
+```
+
+## Lệnh thường dùng
+
+| Lệnh | Tác dụng |
+|---|---|
+| `npm run dev` | Chạy server phát triển |
+| `npm run build` | Build bản production vào `dist/` |
+| `npm run preview` | Xem thử bản build |
+| `npm run lint` | Kiểm tra code |
+
+## Deploy
+
+App là web tĩnh, đường dẫn gốc lấy từ biến `VITE_BASE_PATH` (mặc định `/`).
+
+- **Vercel / Netlify**: import repo, framework **Vite**, thêm `VITE_SUPABASE_URL` và `VITE_SUPABASE_ANON_KEY`. Không cần đặt `VITE_BASE_PATH`.
+- **GitHub Pages**: workflow `.github/workflows/deploy.yml` build với `VITE_BASE_PATH=/tu-lanh-gia-dinh/` mỗi khi push lên `main`. Chỉ chạy được khi repo public hoặc tài khoản GitHub Pro.
+
+## App nhắn tin (thư mục `chat-app/`)
+
+Repo còn chứa một app độc lập, không liên quan tới app tủ lạnh:
+[`chat-app/`](chat-app/README.md) — **Nhắn tin**, chat 1-1 riêng tư với tài khoản riêng,
+schema Supabase riêng và admin duyệt người dùng. Cùng workflow deploy, chạy ở
+`/tu-lanh-gia-dinh/chat/`.
+
+Riêng tab "Nhắn tin" bên trong app tủ lạnh là một module khác, xem
+[`docs/messaging.md`](docs/messaging.md).
