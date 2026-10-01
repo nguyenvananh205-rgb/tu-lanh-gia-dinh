@@ -111,23 +111,17 @@ GitHub Pages trong một lần:
 
 | App | Đường dẫn |
 |-----|-----------|
-| Tủ lạnh gia đình | `https://<tài-khoản>.github.io/Vanh/` |
-| Nhắn tin | `https://<tài-khoản>.github.io/Vanh/chat/` |
+| Tủ lạnh gia đình | `https://nguyenvananh205-rgb.github.io/tu-lanh-gia-dinh/` |
+| Nhắn tin | `https://nguyenvananh205-rgb.github.io/tu-lanh-gia-dinh/chat/` |
 
 Workflow chạy mỗi khi push vào `main` (và các nhánh được liệt kê trong file), hoặc bấm
 **Run workflow** thủ công trong tab Actions.
 
 ### Cần làm một lần (3 việc, khoảng 10 phút)
 
-**1. Cho phép nhánh được deploy** — GitHub chỉ cho nhánh mặc định đẩy lên Pages, nhánh
-khác sẽ bị chặn với thông báo *"Branch ... is not allowed to deploy to github-pages due to
-environment protection rules"*.
-
-> Settings → Environments → **github-pages** → mục *Deployment branches and tags* →
-> **Add deployment branch or tag rule** → gõ đúng tên nhánh (ví dụ
-> `claude/messaging-features-es2k77`) → Add rule.
-
-Hoặc merge nhánh vào nhánh mặc định thì không cần bước này.
+**1. Đưa code lên nhánh `main`** — workflow chỉ chạy trên `main`, và GitHub Pages cũng chỉ
+cho nhánh đó deploy. App nhắn tin hiện nằm ở nhánh `claude/messaging-features-es2k77`, cần
+merge vào `main` thì bản deploy mới có nó.
 
 **2. Lấy khoá Supabase và dán vào GitHub**
 
@@ -155,7 +149,7 @@ Rồi sang GitHub, repo này:
 **3. Trỏ Supabase về đúng URL đã deploy**
 
 > Supabase → Authentication → **URL Configuration** → đặt **Site URL** và thêm vào
-> **Redirect URLs**: `https://<tài-khoản>.github.io/Vanh/chat/`
+> **Redirect URLs**: `https://nguyenvananh205-rgb.github.io/tu-lanh-gia-dinh/chat/`
 
 Thiếu bước này thì link đặt lại mật khẩu trong email sẽ trỏ về `localhost`.
 
