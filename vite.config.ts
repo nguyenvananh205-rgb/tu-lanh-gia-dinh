@@ -31,9 +31,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        // App Nhắn tin nằm ở <base>chat/ — không để service worker của app tủ lạnh
+        // App Nhắn tin (<base>chat/) và thiệp sinh nhật (<base>sinh-nhat/) — không để service worker của app tủ lạnh
         // trả về index.html của mình cho các đường dẫn đó
-        navigateFallbackDenylist: [new RegExp(`^${base}chat/`)],
+        navigateFallbackDenylist: [new RegExp(`^${base}chat/`), new RegExp(`^${base}sinh-nhat/`)],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\.anthropic\.com\/.*/i,

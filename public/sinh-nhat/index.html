@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta property="og:title" content="Happy Birthday Chang Bé O 🎂">
+<meta property="og:description" content="Có một tấm thiệp sinh nhật gửi Chang Bé O. Mở ra, bật loa lên nhé!">
+<meta property="og:image" content="chang.webp">
+<title>Sinh nhật Chang Bé O</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Paytone+One&family=Be+Vietnam+Pro:ital,wght@0,400;0,600;0,800;1,400&family=Patrick+Hand&display=swap">
+<style>
+/* Layout: một cuốn "hồi ký" dọc kiểu bàn làm việc của kế toán — mỗi chương là một món đồ trên bàn (ảnh, sổ cái, giấy note, cuốn tiểu thuyết, bánh kem, lá thư). Một giao diện ấm duy nhất, lấy màu từ bức tranh. */
+:root {
+  --wall: #f4e2c8;
+  --wall-deep: #e9cfa9;
+  --wood: #7a4a2a;
+  --wood-dark: #4e2d18;
+  --ink: #3a271b;
+  --ink-soft: #6d5442;
+  --snake: #7da545;
+  --snake-dark: #4f7a2a;
+  --shirt: #b0262f;
+  --note: #ffe58a;
+  --note-edge: #f2cf5c;
+  --paper: #fffaf0;
+  --pink: #f39a9a;
+  --belly: #f3e6a6;
+
+  --f-display: "Paytone One", "Be Vietnam Pro", system-ui, sans-serif;
+  --f-body: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-hand: "Patrick Hand", "Comic Sans MS", "Be Vietnam Pro", cursive;
+
+  --s-xs: .8125rem; --s-sm: .9375rem; --s-md: 1.0625rem; --s-lg: 1.375rem; --s-xl: 1.875rem; --s-2xl: clamp(2.2rem, 7vw, 3.6rem);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--wall); color: var(--ink); overflow-x: clip; }
+body {
+  margin: 0; font-family: var(--f-body); font-size: var(--s-md); line-height: 1.6;
+  background:
+    radial-gradient(ellipse 120% 60% at 80% -10%, rgba(255,255,255,.55), transparent 60%),
+    linear-gradient(115deg, transparent 0 55%, rgba(255,240,215,.5) 55% 70%, transparent 70%),
+    var(--wall);
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+h1, h2, h3 { font-family: var(--f-display); font-weight: 400; line-height: 1.15; text-wrap: balance; margin: 0; }
+p { margin: 0; }
+button { font: inherit; cursor: pointer; }
+:focus-visible { outline: 3px dashed var(--shirt); outline-offset: 3px; }
+
+.wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 120px; display: grid; gap: 64px; }
+.chapter { display: grid; gap: 20px; }
+.eyebrow { font-family: var(--f-hand); font-size: var(--s-lg); color: var(--shirt); letter-spacing: .02em; }
+.chapter h2 { font-size: var(--s-xl); color: var(--wood-dark); }
+.lede { color: var(--ink-soft); max-width: 60ch; }
+
+/* ---------- Cover overlay ---------- */
+.cover {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px;
+  background: radial-gradient(circle at 50% 40%, #fbe9cf, var(--wall-deep));
+  transition: opacity .7s ease, visibility .7s;
+}
+.cover.gone { opacity: 0; visibility: hidden; }
+.envelope {
+  width: min(360px, 100%); background: var(--paper); border-radius: 14px; padding: 36px 24px 28px; text-align: center;
+  box-shadow: 0 18px 40px rgba(78,45,24,.25); position: relative; display: grid; gap: 16px; justify-items: center;
+  border: 2px solid var(--wall-deep);
+}
+.envelope::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 46%;
+  background: linear-gradient(160deg, var(--note) 0 49.5%, transparent 50%), linear-gradient(200deg, var(--note-edge) 0 49.5%, transparent 50%);
+  border-radius: 14px 14px 0 0; opacity: .55; pointer-events: none;
+}
+.seal { width: 86px; height: 86px; position: relative; animation: wiggle 2.4s ease-in-out infinite; }
+.envelope h1 { font-size: var(--s-xl); color: var(--shirt); position: relative; }
+.envelope p { color: var(--ink-soft); position: relative; }
+.btn {
+  border: 0; border-radius: 999px; padding: 12px 22px; background: var(--shirt); color: #fff; font-weight: 800;
+  box-shadow: 0 4px 0 #7a1820; transition: transform .1s;
+}
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #7a1820; }
+.btn.ghost { background: transparent; color: var(--ink-soft); box-shadow: none; font-weight: 600; text-decoration: underline; padding: 4px 8px; }
+.btn.green { background: var(--snake-dark); box-shadow: 0 4px 0 #34531a; }
+
+/* ---------- Hero ---------- */
+.hero { display: grid; gap: 20px; justify-items: center; text-align: center; }
+.hero h1 { font-size: var(--s-2xl); color: var(--shirt); }
+.hero h1 .name { display: block; color: var(--wood-dark); }
+.hero h1 .bounce { display: inline-block; animation: hop 1.8s ease-in-out infinite; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.chip { font-family: var(--f-hand); font-size: var(--s-md); background: var(--paper); border: 2px solid var(--wall-deep); border-radius: 999px; padding: 2px 14px; }
+.photo {
+  position: relative; width: min(440px, 100%); background: var(--paper); padding: 12px 12px 48px; border-radius: 6px;
+  box-shadow: 0 16px 34px rgba(78,45,24,.28); transform: rotate(-2deg); animation: sway 6s ease-in-out infinite;
+}
+.photo img { display: block; width: 100%; height: auto; border-radius: 3px; }
+.photo figcaption { position: absolute; left: 0; right: 0; bottom: 10px; font-family: var(--f-hand); font-size: var(--s-lg); color: var(--ink); }
+.tape { position: absolute; top: -12px; left: 50%; width: 110px; height: 28px; margin-left: -55px; background: rgba(243,154,154,.75); transform: rotate(3deg); }
+.age-badge {
+  position: absolute; right: -10px; top: 30px; width: 84px; height: 84px; border-radius: 50%; background: var(--snake);
+  color: #fff; display: grid; place-items: center; font-family: var(--f-display); font-size: 1.9rem; line-height: 1;
+  box-shadow: 0 6px 0 var(--snake-dark); transform: rotate(10deg); animation: pulse 2s ease-in-out infinite;
+}
+.age-badge small { display: block; font-family: var(--f-body); font-size: .7rem; font-weight: 800; letter-spacing: .06em; }
+
+/* ---------- Ledger ---------- */
+.ledger { background: var(--paper); border-radius: 10px; box-shadow: 0 10px 24px rgba(78,45,24,.15); overflow: hidden; position: relative; border: 2px solid var(--wall-deep); }
+.ledger-head { background: var(--snake-dark); color: #fff; padding: 12px 16px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; font-size: var(--s-sm); }
+.ledger-head b { font-family: var(--f-display); font-weight: 400; font-size: var(--s-md); }
+.ledger-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.ledger-cols table + table { box-shadow: -2px -2px 0 var(--wall-deep); }
+.ledger caption { text-align: left; padding: 12px 14px 6px; font-family: var(--f-display); color: var(--snake-dark); font-size: var(--s-md); }
+.ledger table { width: 100%; border-collapse: collapse; font-size: var(--s-sm); }
+.ledger th.num { text-align: right; }
+.ledger th, .ledger td { padding: 10px 14px; text-align: left; border-bottom: 1px dashed var(--wall-deep); vertical-align: top; }
+.ledger th { font-size: var(--s-xs); text-transform: uppercase; letter-spacing: .08em; color: var(--ink-soft); background: #fbf1df; }
+.ledger td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 800; white-space: nowrap; }
+.ledger tr.total td { border-top: 3px double var(--ink); border-bottom: 0; font-weight: 800; background: #fbf1df; }
+.ledger .code { font-variant-numeric: tabular-nums; color: var(--ink-soft); white-space: nowrap; }
+.ledger-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 16px 18px; }
+.stamp {
+  flex: none; border: 4px solid var(--shirt); color: var(--shirt); font-family: var(--f-display);
+  padding: 4px 12px; border-radius: 8px; transform: rotate(-14deg); font-size: var(--s-lg); opacity: .85; pointer-events: none;
+  background: rgba(255,250,240,.6);
+}
+.stamp.hit { animation: stamp .5s cubic-bezier(.3,1.6,.6,1) both; }
+.footnote { font-family: var(--f-hand); font-size: var(--s-lg); color: var(--ink-soft); flex: 1 1 260px; min-width: 0; }
+
+/* ---------- Sticky notes ---------- */
+.notes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 18px; }
+.note {
+  border: 0; text-align: left; position: relative; min-height: 150px; padding: 18px 14px 14px; border-radius: 2px;
+  background: var(--note); box-shadow: 0 8px 14px rgba(78,45,24,.18); font-family: var(--f-hand); color: var(--ink);
+  transition: transform .25s; perspective: 600px;
+}
+.note:nth-child(3n+1) { transform: rotate(-2deg); }
+.note:nth-child(3n+2) { transform: rotate(1.5deg); background: #ffd9d2; }
+.note:nth-child(3n) { transform: rotate(-.8deg); background: #e3f0c4; }
+.note:hover { transform: rotate(0) scale(1.04); }
+.note::before { content: ""; position: absolute; top: -8px; left: 50%; margin-left: -22px; width: 44px; height: 16px; background: rgba(243,154,154,.7); }
+.note .t { font-size: 1.5rem; line-height: 1.1; display: block; color: var(--wood-dark); }
+.note .face, .note .back { display: grid; gap: 6px; font-size: 1.15rem; line-height: 1.25; }
+.note .back { display: none; }
+.note.flipped .face { display: none; }
+.note.flipped .back { display: grid; animation: pop .35s ease both; }
+.note .hint { font-family: var(--f-body); font-size: .72rem; color: var(--ink-soft); }
+
+/* ---------- Novel generator ---------- */
+.novel { display: grid; gap: 16px; background: var(--wood); border-radius: 14px; padding: 20px 16px; color: #fff4e3; box-shadow: inset 0 0 0 6px var(--wood-dark); }
+.events { display: flex; flex-wrap: wrap; gap: 10px; }
+.event { background: var(--paper); color: var(--ink); border-radius: 8px; padding: 8px 12px; font-size: var(--s-sm); box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+.event b { color: var(--shirt); margin-right: 4px; }
+.events.fly .event { animation: suck .7s ease-in forwards; }
+.events.fly .event:nth-child(2) { animation-delay: .12s; }
+.events.fly .event:nth-child(3) { animation-delay: .24s; }
+.novel-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.book { display: grid; grid-template-columns: 120px 1fr; gap: 16px; align-items: start; background: var(--paper); color: var(--ink); border-radius: 10px; padding: 16px; }
+.book.show { animation: pop .5s cubic-bezier(.3,1.5,.6,1) both; }
+.book-cover {
+  aspect-ratio: 2/3; max-width: 100%; border-radius: 4px 10px 10px 4px; background: linear-gradient(135deg, var(--pink), var(--shirt));
+  color: #fff; padding: 10px 8px; display: grid; align-content: space-between; box-shadow: inset 6px 0 0 rgba(0,0,0,.18), 0 6px 12px rgba(0,0,0,.2);
+  font-family: var(--f-display); font-size: .95rem; line-height: 1.1; text-align: center;
+}
+.book-cover small { font-family: var(--f-body); font-size: .62rem; font-weight: 600; opacity: .9; }
+.book-body { display: grid; gap: 8px; min-width: 0; }
+.book-body h3 { font-size: var(--s-lg); color: var(--shirt); }
+.book-body .meta { font-size: var(--s-xs); color: var(--ink-soft); }
+.book-body p { font-style: italic; }
+@media (max-width: 460px) { .book { grid-template-columns: 1fr; } .book-cover { width: 120px; } }
+
+/* ---------- Mode toggle ---------- */
+.mode { background: var(--paper); border-radius: 14px; padding: 20px 16px; display: grid; gap: 16px; border: 2px solid var(--wall-deep); }
+.switch { display: grid; grid-template-columns: 1fr 1fr; background: var(--wall-deep); border-radius: 999px; padding: 4px; position: relative; max-width: 380px; }
+.switch button { border: 0; background: transparent; padding: 10px 8px; border-radius: 999px; font-weight: 800; color: var(--ink-soft); position: relative; z-index: 1; transition: color .3s; }
+.switch button[aria-pressed="true"] { color: #fff; }
+.switch .knob { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 999px; background: var(--snake-dark); transition: transform .35s cubic-bezier(.4,1.4,.6,1), background .35s; }
+.switch.min .knob { transform: translateX(100%); background: var(--shirt); }
+.mode-panel { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
+.mode-icon { font-size: 3.4rem; line-height: 1; animation: hop 1.6s ease-in-out infinite; }
+.mode-panel ul { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; }
+.mode-panel h3 { font-size: var(--s-lg); color: var(--wood-dark); margin-bottom: 6px; }
+
+/* ---------- Cake ---------- */
+.cake-stage { display: grid; justify-items: center; gap: 14px; text-align: center; }
+.cake { width: min(320px, 100%); height: auto; overflow: visible; }
+.flame { transform-origin: 50% 100%; transform-box: fill-box; animation: flicker .25s ease-in-out infinite alternate; }
+.out .flame { animation: none; opacity: 0; transition: opacity .3s; }
+.smoke { opacity: 0; }
+.out .smoke { animation: smoke 1.6s ease-out forwards; }
+.voucher { font-family: var(--f-hand); font-size: var(--s-lg); color: var(--snake-dark); min-height: 1.6em; }
+
+/* ---------- Letter ---------- */
+.letter {
+  background: var(--paper); border-radius: 6px; padding: 28px 22px; box-shadow: 0 14px 30px rgba(78,45,24,.2);
+  background-image: repeating-linear-gradient(transparent 0 31px, #f0dcc0 31px 32px); line-height: 32px; position: relative;
+  font-family: var(--f-hand); font-size: 1.3rem; display: grid; gap: 0;
+}
+.letter p { margin: 0 0 32px; }
+.letter p:last-child { margin: 0; }
+.letter .sign { text-align: right; color: var(--shirt); }
+.letter-snake { position: absolute; width: 70px; height: 70px; right: -8px; top: -36px; animation: wiggle 3s ease-in-out infinite; }
+
+/* ---------- Song ---------- */
+.song { background: var(--snake-dark); color: #f4fbe6; border-radius: 14px; padding: 20px 16px; display: grid; gap: 14px; }
+.song h3 { font-size: var(--s-lg); }
+.lyrics { display: grid; gap: 4px; font-family: var(--f-hand); font-size: 1.35rem; line-height: 1.35; }
+.lyrics .line { opacity: .55; transition: opacity .3s; }
+.lyrics .line.on { opacity: 1; }
+.lyrics .syl { transition: color .15s, text-shadow .15s; }
+.lyrics .syl.lit { color: var(--note); text-shadow: 0 0 10px rgba(255,229,138,.7); }
+.song .verse-label { font-size: var(--s-xs); text-transform: uppercase; letter-spacing: .08em; opacity: .8; }
+
+/* ---------- Floating music button ---------- */
+.music-fab {
+  position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 40; width: 56px; height: 56px; border-radius: 50%;
+  border: 0; background: var(--shirt); color: #fff; font-size: 1.5rem; box-shadow: 0 6px 16px rgba(0,0,0,.25);
+}
+.music-fab.playing { animation: spin 4s linear infinite; }
+
+/* ---------- Balloons + confetti ---------- */
+.sky { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.balloon { position: absolute; bottom: -120px; width: 46px; height: 58px; border-radius: 50% 50% 48% 52% / 60% 60% 40% 40%; animation: rise linear infinite; opacity: .8; }
+.balloon::after { content: ""; position: absolute; left: 50%; top: 100%; width: 1px; height: 60px; background: rgba(78,45,24,.35); }
+.wrap { position: relative; z-index: 1; }
+#confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 45; }
+
+footer { text-align: center; color: var(--ink-soft); font-size: var(--s-sm); }
+
+@keyframes hop { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
+@keyframes sway { 0%,100% { transform: rotate(-2deg) } 50% { transform: rotate(1deg) } }
+@keyframes wiggle { 0%,100% { transform: rotate(-6deg) } 50% { transform: rotate(6deg) } }
+@keyframes pulse { 0%,100% { transform: rotate(10deg) scale(1) } 50% { transform: rotate(10deg) scale(1.08) } }
+@keyframes pop { from { transform: scale(.85); opacity: .3 } to { transform: scale(1); opacity: 1 } }
+@keyframes stamp { from { transform: rotate(-14deg) scale(2.2); opacity: 0 } to { transform: rotate(-14deg) scale(1); opacity: .85 } }
+@keyframes suck { to { transform: translateY(80px) scale(.2) rotate(30deg); opacity: 0 } }
+@keyframes flicker { from { transform: scaleY(1) skewX(-3deg) } to { transform: scaleY(1.15) skewX(4deg) } }
+@keyframes smoke { 0% { opacity: .7; transform: translateY(0) } 100% { opacity: 0; transform: translateY(-40px) } }
+@keyframes rise { to { transform: translateY(calc(-100vh - 200px)) translateX(30px) } }
+@keyframes spin { to { transform: rotate(360deg) } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .balloon { display: none; }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="snake" viewBox="0 0 100 100">
+    <ellipse cx="50" cy="84" rx="40" ry="13" fill="#4f7a2a"/>
+    <ellipse cx="50" cy="80" rx="38" ry="13" fill="#7da545"/>
+    <ellipse cx="50" cy="68" rx="28" ry="11" fill="#86ad4c"/>
+    <rect x="37" y="34" width="26" height="38" rx="13" fill="#7da545"/>
+    <rect x="43" y="44" width="14" height="28" rx="7" fill="#f3e6a6"/>
+    <circle cx="33" cy="80" r="3" fill="#4f7a2a"/><circle cx="66" cy="78" r="3.5" fill="#4f7a2a"/><circle cx="54" cy="86" r="2.5" fill="#4f7a2a"/>
+    <ellipse cx="50" cy="30" rx="26" ry="21" fill="#86ad4c"/>
+    <circle cx="40" cy="28" r="6" fill="#2b1d14"/><circle cx="42" cy="26" r="2" fill="#fff"/>
+    <path d="M55 28 q5 -5 10 0" stroke="#2b1d14" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <circle cx="32" cy="38" r="4" fill="#f39a9a" opacity=".8"/><circle cx="68" cy="38" r="4" fill="#f39a9a" opacity=".8"/>
+    <path d="M47 41 q3 3 6 0" stroke="#2b1d14" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M50 43 l0 7 m0 0 l-3 4 m3 -4 l3 4" stroke="#d94a5a" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  </symbol>
+</svg>
+
+<div class="cover" id="cover" role="dialog" aria-modal="true" aria-labelledby="cover-title">
+  <div class="envelope">
+    <svg class="seal" aria-hidden="true"><use href="#snake"/></svg>
+    <h1 id="cover-title">Có thư gửi Chang Bé O</h1>
+    <p>Người gửi dặn: mở thiệp ra, bật loa lên, và chuẩn bị sẵn một đùi gà.</p>
+    <button class="btn" id="open-music">Mở thiệp và bật nhạc 🎵</button>
+    <button class="btn ghost" id="open-silent">Mở thiệp, không bật nhạc</button>
+  </div>
+</div>
+
+<div class="sky" id="sky" aria-hidden="true"></div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<main class="wrap">
+
+  <!-- Hero -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="eyebrow">Hồi ký tập 27 · tái bản có bổ sung drama</div>
+    <h1 id="hero-title">
+      <span class="bounce">Happy</span> <span class="bounce" style="animation-delay:.15s">Birthday</span>
+      <span class="name">Chang Bé O</span>
+    </h1>
+    <div class="chips">
+      <span class="chip">🎂 sinh năm 1999</span>
+      <span class="chip">🧮 kế toán</span>
+      <span class="chip">🍗 tín đồ gà rán</span>
+      <span class="chip">😎 mẹ bỉm kiêm Mẹ Mìn</span>
+    </div>
+    <figure class="photo">
+      <span class="tape" aria-hidden="true"></span>
+      <img src="chang.webp" width="800" height="1202" alt="Tranh vẽ Chang Bé O đeo kính, mặc áo đỏ, chống cằm cười tươi ở bàn làm việc kế toán, xung quanh là mấy bé rắn xanh, máy tính tay và các tờ giấy note.">
+      <div class="age-badge" aria-label="27 tuổi">27<small>TUỔI</small></div>
+      <figcaption>Chang ở chỗ làm 💼</figcaption>
+    </figure>
+  </section>
+
+  <!-- Ledger -->
+  <section class="chapter" aria-labelledby="c1">
+    <div class="eyebrow">Chương 1</div>
+    <h2 id="c1">Bảng cân đối tuổi 27</h2>
+    <p class="lede">Kiểm toán độc lập (tức là tụi mình) đã rà soát toàn bộ sổ sách năm vừa rồi của Chang. Kết quả như sau.</p>
+    <div class="ledger">
+      <div class="ledger-head"><b>Chang Bé O · Báo cáo tài chính</b><span>Kỳ kế toán: 1999 → nay · Đơn vị: tình thương</span></div>
+      <div class="ledger-cols">
+        <table>
+          <caption>Tài sản</caption>
+          <thead><tr><th>Mã TK</th><th>Khoản mục</th><th class="num">Số dư</th></tr></thead>
+          <tbody>
+            <tr><td class="code">111</td><td>Nụ cười</td><td class="num">∞</td></tr>
+            <tr><td class="code">131</td><td>Một cục cưng 👶</td><td class="num">vô giá</td></tr>
+            <tr><td class="code">156</td><td>Sự độc lập</td><td class="num">100%</td></tr>
+            <tr><td class="code">242</td><td>Độ mỏ hỗn</td><td class="num">vượt định mức</td></tr>
+            <tr class="total"><td></td><td>Tổng tài sản</td><td class="num">vô giá</td></tr>
+          </tbody>
+        </table>
+        <table>
+          <caption>Nguồn vốn</caption>
+          <thead><tr><th>Mã TK</th><th>Khoản mục</th><th class="num">Số dư</th></tr></thead>
+          <tbody>
+            <tr><td class="code">331</td><td>Gà rán (nợ dài hạn)</td><td class="num">999 đùi</td></tr>
+            <tr><td class="code">411</td><td>Độ ham chơi (vốn chủ sở hữu)</td><td class="num">100%</td></tr>
+            <tr><td class="code">352</td><td>Quỹ dự phòng drama</td><td class="num">3 chuyện → 1 cuốn</td></tr>
+            <tr><td class="code">419</td><td>Bạn bè thương Chang</td><td class="num">đầy két</td></tr>
+            <tr class="total"><td></td><td>Tổng nguồn vốn</td><td class="num">vô giá</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ledger-foot">
+        <p class="footnote">Bảng luôn cân. Nếu có chỗ lệch thì áp dụng nguyên tắc của Chang: sai ở đâu bôi trắng ở đó ✍️</p>
+        <div class="stamp" id="stamp">ĐÃ DUYỆT</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sticky notes -->
+  <section class="chapter" aria-labelledby="c2">
+    <div class="eyebrow">Chương 2</div>
+    <h2 id="c2">Hồ sơ nhân sự (bản không chính thức)</h2>
+    <p class="lede">Bấm vào từng tờ giấy note để xem lời phê của phòng nhân sự.</p>
+    <div class="notes" id="notes">
+      <button class="note" type="button"><span class="face"><span class="t">Vui vẻ</span>Đi tới đâu là ồn tới đó.<span class="hint">bấm để lật</span></span><span class="back">Phê: Năng lượng đủ thắp sáng cả phòng kế toán, tiết kiệm được tiền điện.</span></button>
+      <button class="note" type="button"><span class="face"><span class="t">Độc lập</span>Tự lo hết, tự gánh hết.<span class="hint">bấm để lật</span></span><span class="back">Phê: Làm hết việc chứ không đợi hết giờ. Đề nghị tăng lương (và tăng gà).</span></button>
+      <button class="note" type="button"><span class="face"><span class="t">Hài hước</span>Nói câu nào cười câu đó.<span class="hint">bấm để lật</span></span><span class="back">Phê: Cảnh báo, ngồi gần Chang dễ bị đau bụng vì cười.</span></button>
+      <button class="note" type="button"><span class="face"><span class="t">Mỏ hỗn</span>Chính chủ đã nhận, có biển ghi rõ trên bàn.<span class="hint">bấm để lật</span></span><span class="back">Phê: Mỏ hỗn nhưng tim mềm. Hỗn đúng người, đúng lúc, đúng định khoản.</span></button>
+      <button class="note" type="button"><span class="face"><span class="t">Ham chơi</span>"Đi xíu về liền" nghĩa là 4 tiếng.<span class="hint">bấm để lật</span></span><span class="back">Phê: Lịch chơi kín hơn lịch chốt sổ cuối năm.</span></button>
+      <button class="note" type="button"><span class="face"><span class="t">Quy tắc con rắn</span>Linh hoạt, khéo léo, quan sát tốt, thích nghi nhanh.<span class="hint">bấm để lật</span></span><span class="back">Phê: Đã quan sát thấy gà rán từ cách 3 cây số. Thích nghi ngay với mọi quán mới mở.</span></button>
+    </div>
+  </section>
+
+  <!-- Novel -->
+  <section class="chapter" aria-labelledby="c3">
+    <div class="eyebrow">Chương 3</div>
+    <h2 id="c3">Ba sự kiện, một cuốn tiểu thuyết</h2>
+    <p class="lede">Chang có biệt tài lấy ba chuyện nhỏ xíu rồi kể thành tiểu thuyết lâm li bi đát. Bấm thử máy chuyển thể bên dưới.</p>
+    <div class="novel">
+      <div class="events" id="events" aria-live="polite"></div>
+      <div class="novel-actions">
+        <button class="btn" id="make-novel">Chuyển thể thành tiểu thuyết 📖</button>
+        <button class="btn ghost" id="new-events" style="color:#fff4e3">Đổi 3 sự kiện khác</button>
+      </div>
+      <div class="book" id="book" aria-live="polite">
+        <div class="book-cover"><small>Tiểu thuyết · Tập <span id="book-vol">27</span></small><span id="book-title">Cuốn Theo Chiều Gà</span><small>Chang Bé O</small></div>
+        <div class="book-body">
+          <h3 id="book-h">Cuốn Theo Chiều Gà</h3>
+          <div class="meta" id="book-meta">1.027 trang · 3 sự kiện gốc · nước mắt: không giới hạn</div>
+          <p id="book-text">Chương 1: Shipper giao gà trễ 5 phút. Trời bỗng tối sầm, gió nổi lên, Chang nhìn ra cửa sổ và hiểu rằng đời người có những phút chờ dài hơn cả một kiếp...</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Mode toggle -->
+  <section class="chapter" aria-labelledby="c4">
+    <div class="eyebrow">Chương 4</div>
+    <h2 id="c4">Có con nhưng vẫn là Mẹ Mìn</h2>
+    <div class="mode">
+      <div class="switch" id="switch" role="group" aria-label="Chọn chế độ">
+        <span class="knob" aria-hidden="true"></span>
+        <button type="button" data-mode="bim" aria-pressed="true">👶 Mẹ bỉm</button>
+        <button type="button" data-mode="min" aria-pressed="false">😎 Mẹ Mìn</button>
+      </div>
+      <div class="mode-panel" aria-live="polite">
+        <div class="mode-icon" id="mode-icon" aria-hidden="true">🍼</div>
+        <div>
+          <h3 id="mode-title">Chế độ Mẹ bỉm</h3>
+          <ul id="mode-list">
+            <li>Pha sữa lúc 2 giờ sáng mà vẫn tỉnh táo chốt sổ lúc 8 giờ.</li>
+            <li>Thuộc lịch tiêm chủng hơn thuộc lịch nộp thuế.</li>
+            <li>Một tay bế con, một tay bấm máy tính.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cake -->
+  <section class="chapter" aria-labelledby="c5">
+    <div class="eyebrow">Chương 5</div>
+    <h2 id="c5">Ước đi rồi thổi nến</h2>
+    <div class="cake-stage">
+      <svg class="cake" id="cake" viewBox="0 0 320 280" role="img" aria-label="Bánh kem sinh nhật có hai cây nến số 2 và 7, bên cạnh có một chiếc đùi gà">
+        <ellipse cx="160" cy="262" rx="150" ry="14" fill="#4e2d18" opacity=".2"/>
+        <ellipse cx="160" cy="250" rx="140" ry="18" fill="#e9e1d4"/>
+        <rect x="50" y="170" width="220" height="80" rx="14" fill="#f39a9a"/>
+        <path d="M50 186 q18 22 36 0 t36 0 t36 0 t36 0 t36 0 t36 0 v-6 h-216z" fill="#fffaf0"/>
+        <rect x="80" y="112" width="160" height="64" rx="12" fill="#ffe58a"/>
+        <path d="M80 126 q16 18 32 0 t32 0 t32 0 t32 0 t32 0 v-6 h-160z" fill="#fffaf0"/>
+        <circle cx="96" cy="214" r="6" fill="#b0262f"/><circle cx="160" cy="222" r="6" fill="#7da545"/><circle cx="224" cy="214" r="6" fill="#b0262f"/>
+        <circle cx="120" cy="150" r="5" fill="#7da545"/><circle cx="200" cy="150" r="5" fill="#b0262f"/>
+        <!-- candle 2 -->
+        <text x="128" y="112" text-anchor="middle" font-family="Paytone One, sans-serif" font-size="54" fill="#7da545" stroke="#4f7a2a" stroke-width="2">2</text>
+        <rect x="126" y="56" width="4" height="12" fill="#3a271b"/>
+        <path class="flame" d="M128 30 q10 14 0 26 q-10 -12 0 -26z" fill="#ffb02e"/>
+        <path class="flame" d="M128 40 q5 8 0 14 q-5 -6 0 -14z" fill="#fff3b0"/>
+        <path class="smoke" d="M128 50 q-6 -10 0 -18 q6 -8 0 -16" stroke="#9b8f84" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <!-- candle 7 -->
+        <text x="192" y="112" text-anchor="middle" font-family="Paytone One, sans-serif" font-size="54" fill="#7da545" stroke="#4f7a2a" stroke-width="2">7</text>
+        <rect x="190" y="56" width="4" height="12" fill="#3a271b"/>
+        <path class="flame" d="M192 30 q10 14 0 26 q-10 -12 0 -26z" fill="#ffb02e"/>
+        <path class="flame" d="M192 40 q5 8 0 14 q-5 -6 0 -14z" fill="#fff3b0"/>
+        <path class="smoke" d="M192 50 q-6 -10 0 -18 q6 -8 0 -16" stroke="#9b8f84" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <!-- chicken drumstick -->
+        <g transform="translate(268 222) rotate(-30)">
+          <ellipse cx="0" cy="0" rx="26" ry="18" fill="#c97a2c"/>
+          <ellipse cx="-4" cy="-4" rx="18" ry="10" fill="#e09a45"/>
+          <rect x="20" y="-4" width="22" height="8" rx="4" fill="#fffaf0"/>
+          <circle cx="44" cy="-5" r="6" fill="#fffaf0"/><circle cx="44" cy="5" r="6" fill="#fffaf0"/>
+        </g>
+      </svg>
+      <button class="btn green" id="blow">Thổi nến 🌬️</button>
+      <div class="voucher" id="voucher" aria-live="polite">Chang nhắm mắt lại, ước một điều, rồi bấm nút.</div>
+    </div>
+  </section>
+
+  <!-- Letter -->
+  <section class="chapter" aria-labelledby="c6">
+    <div class="eyebrow">Chương cuối</div>
+    <h2 id="c6">Lời chúc gửi Chang</h2>
+    <div class="letter">
+      <svg class="letter-snake" aria-hidden="true"><use href="#snake"/></svg>
+      <p>Chang Bé O thân thương,</p>
+      <p>Chúc mừng sinh nhật tuổi 27! Chúc Chang sổ sách lúc nào cũng cân, ví tiền lúc nào cũng dư, gà rán không bao giờ hết, và mỗi lần lỡ sai thì đã có bút xoá đứng chờ sẵn.</p>
+      <p>Chúc cục cưng hay ăn chóng lớn, ngủ ngoan cả đêm, để mẹ bỉm ban ngày được yên tâm làm Mẹ Mìn buổi tối. Chúc Chang luôn vui vẻ, độc lập và mỏ hỗn đúng chỗ như bây giờ, vì tụi mình thương Chang đúng như vậy.</p>
+      <p>Năm nay cứ kể drama thoải mái, nhưng mong là cuốn tiểu thuyết đời Chang toàn chương hài, chương nào cũng có hậu, và lúc nào cũng có tụi mình đóng vai phụ.</p>
+      <p class="sign">Thương Chang nhiều 💖<br>Hội những người thương Chang</p>
+    </div>
+  </section>
+
+  <!-- Song -->
+  <section class="chapter" aria-labelledby="c7">
+    <div class="song">
+      <h3 id="c7">Hát cùng nhau nào 🎤</h3>
+      <div class="verse-label" id="verse-label">Lời 1 · tiếng Anh</div>
+      <div class="lyrics" id="lyrics"></div>
+      <div><button class="btn" id="song-btn">Phát bài hát ▶</button></div>
+    </div>
+  </section>
+
+  <footer>Thiệp sinh nhật làm riêng cho Chang Bé O · 2026</footer>
+</main>
+
+<button class="music-fab" id="fab" aria-label="Bật nhạc">🎵</button>
+
+<script>
+(() => {
+  const $ = (s) => document.querySelector(s);
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------------- Balloons ---------------- */
+  const sky = $('#sky');
+  const balloonColors = ['#b0262f', '#7da545', '#ffe58a', '#f39a9a', '#e09a45'];
+  for (let i = 0; i < 9; i++) {
+    const b = document.createElement('span');
+    b.className = 'balloon';
+    b.style.left = (5 + Math.random() * 90) + '%';
+    b.style.background = balloonColors[i % balloonColors.length];
+    b.style.animationDuration = (14 + Math.random() * 12) + 's';
+    b.style.animationDelay = (-Math.random() * 20) + 's';
+    b.style.transform = `scale(${0.6 + Math.random() * 0.6})`;
+    sky.appendChild(b);
+  }
+
+  /* ---------------- Confetti ---------------- */
+  const cv = $('#confetti'), ctx = cv.getContext('2d');
+  let parts = [], raf = null;
+  const resize = () => { cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio; };
+  addEventListener('resize', resize); resize();
+  const emojis = ['🍗', '🎈', '💖', '🎉', '🐍'];
+  function burst(n = 140) {
+    if (reduceMotion) return;
+    const W = cv.width, H = cv.height, d = devicePixelRatio;
+    for (let i = 0; i < n; i++) {
+      const isEmoji = Math.random() < 0.18;
+      parts.push({
+        x: W / 2 + (Math.random() - .5) * W * .3, y: H * .55,
+        vx: (Math.random() - .5) * 18 * d, vy: (-Math.random() * 18 - 8) * d,
+        r: Math.random() * Math.PI, vr: (Math.random() - .5) * .3,
+        w: (6 + Math.random() * 6) * d, h: (10 + Math.random() * 8) * d,
+        c: balloonColors[i % balloonColors.length], e: isEmoji ? emojis[i % emojis.length] : null, life: 0
+      });
+    }
+    if (!raf) raf = requestAnimationFrame(tick);
+  }
+  function tick() {
+    const d = devicePixelRatio;
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    parts.forEach(p => {
+      p.vy += 0.45 * d; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.r += p.vr; p.life++;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r);
+      if (p.e) { ctx.font = `${26 * d}px serif`; ctx.fillText(p.e, -13 * d, 10 * d); }
+      else { ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); }
+      ctx.restore();
+    });
+    parts = parts.filter(p => p.y < cv.height + 60 * d && p.life < 400);
+    raf = parts.length ? requestAnimationFrame(tick) : (ctx.clearRect(0, 0, cv.width, cv.height), null);
+  }
+
+  /* ---------------- Music (Web Audio, tự tổng hợp) ---------------- */
+  // Giai điệu Happy Birthday (phạm vi công cộng): [nốt, số phách]
+  const N = { A3: 220, C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392, A4: 440, B4: 493.88, C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99 };
+  const melody = [
+    [['G4', .75], ['G4', .25], ['A4', 1], ['G4', 1], ['C5', 1], ['B4', 2]],
+    [['G4', .75], ['G4', .25], ['A4', 1], ['G4', 1], ['D5', 1], ['C5', 2]],
+    [['G4', .75], ['G4', .25], ['G5', 1], ['E5', 1], ['C5', 1], ['B4', 1], ['A4', 2]],
+    [['F5', .75], ['F5', .25], ['E5', 1], ['C5', 1], ['D5', 1], ['C5', 3]]
+  ];
+  const bass = [['C4', 'G4'], ['G4', 'C4'], ['C4', 'F4'], ['F4', 'C4']];
+  const verses = [
+    { label: 'Lời 1 · tiếng Anh', lines: [
+      ['Hap', 'py', 'birth', 'day', 'to', 'you'],
+      ['Hap', 'py', 'birth', 'day', 'to', 'you'],
+      ['Hap', 'py', 'birth', 'day', 'dear', 'Chang', 'Bé O'],
+      ['Hap', 'py', 'birth', 'day', 'to', 'you'] ] },
+    { label: 'Lời 2 · lời chế cho Chang', lines: [
+      ['Chúc', 'mừng', 'sinh', 'nhật', 'Chang', 'ơi'],
+      ['Gà', 'rán', 'ăn', 'thả', 'ga', 'nha'],
+      ['Chang', 'Bé', 'O', 'xinh', 'nhất', 'quả', 'đất'],
+      ['Tiền', 'về', 'như', 'lũ', 'nha', 'Chang'] ] }
+  ];
+  const lyricsEl = $('#lyrics'), verseLabel = $('#verse-label');
+  function renderVerse(v) {
+    verseLabel.textContent = verses[v].label;
+    lyricsEl.innerHTML = verses[v].lines.map((l, i) =>
+      `<div class="line" data-l="${i}">${l.map((s, j) => `<span class="syl" data-s="${j}">${s}</span>`).join(' ')}</div>`).join('');
+  }
+  renderVerse(0);
+
+  let ac = null, master = null, playing = false, timers = [], loopTimer = null;
+  const BEAT = 0.42;
+  function ensureAudio() {
+    if (!ac) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return false;
+      ac = new AC();
+      master = ac.createGain(); master.gain.value = 0.5; master.connect(ac.destination);
+    }
+    if (ac.state === 'suspended') ac.resume();
+    return true;
+  }
+  function chime(freq, t, dur, vol = 0.32) {
+    // tiếng hộp nhạc: triangle + bồi âm sine, tắt dần
+    [[1, 'triangle', vol], [2, 'sine', vol * 0.25], [3, 'sine', vol * 0.08]].forEach(([m, type, v]) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.value = freq * m;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(v, t + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(dur, 0.35) + 0.6);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 1);
+    });
+  }
+  function pad(freq, t, dur) {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'sine'; o.frequency.value = freq / 2;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.12, t + 0.08);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + .1);
+  }
+  function playSong() {
+    let t = ac.currentTime + 0.15;
+    const start = t;
+    verses.forEach((verse, v) => {
+      const verseStart = t;
+      timers.push(setTimeout(() => renderVerse(v), (verseStart - start) * 1000));
+      melody.forEach((line, li) => {
+        const lineStart = t;
+        let lineBeats = 0;
+        line.forEach(([n, b], si) => {
+          chime(N[n], t, b * BEAT);
+          const at = (t - start) * 1000;
+          timers.push(setTimeout(() => {
+            lyricsEl.querySelectorAll('.line').forEach(el => el.classList.toggle('on', +el.dataset.l === li));
+            const syl = lyricsEl.querySelector(`.line[data-l="${li}"] .syl[data-s="${si}"]`);
+            if (syl) syl.classList.add('lit');
+          }, at));
+          t += b * BEAT; lineBeats += b;
+        });
+        const half = lineBeats * BEAT / 2;
+        pad(N[bass[li][0]], lineStart, half + .2);
+        pad(N[bass[li][1]], lineStart + half, half + .2);
+      });
+      t += BEAT * 2;
+    });
+    const total = (t - start) * 1000;
+    loopTimer = setTimeout(() => { timers = []; if (playing) playSong(); }, total + 600);
+  }
+  function startMusic() {
+    if (playing || !ensureAudio()) return;
+    playing = true; master.gain.setValueAtTime(0.5, ac.currentTime);
+    playSong(); syncButtons();
+  }
+  function stopMusic() {
+    playing = false;
+    timers.forEach(clearTimeout); timers = []; clearTimeout(loopTimer);
+    if (master) master.gain.setTargetAtTime(0.0001, ac.currentTime, 0.05);
+    setTimeout(() => { if (!playing && master) master.gain.value = 0.5; renderVerse(0); }, 400);
+    syncButtons();
+  }
+  const fab = $('#fab'), songBtn = $('#song-btn');
+  function syncButtons() {
+    fab.classList.toggle('playing', playing);
+    fab.textContent = playing ? '🎵' : '🔇';
+    fab.setAttribute('aria-label', playing ? 'Tắt nhạc' : 'Bật nhạc');
+    songBtn.textContent = playing ? 'Tạm dừng ⏸' : 'Phát bài hát ▶';
+  }
+  const toggle = () => playing ? stopMusic() : startMusic();
+  fab.addEventListener('click', toggle);
+  songBtn.addEventListener('click', toggle);
+  syncButtons();
+
+  /* ---------------- Cover ---------------- */
+  const cover = $('#cover');
+  function openCard(withMusic) {
+    cover.classList.add('gone');
+    if (withMusic) startMusic();
+    setTimeout(() => burst(120), 300);
+  }
+  $('#open-music').addEventListener('click', () => openCard(true));
+  $('#open-silent').addEventListener('click', () => openCard(false));
+  $('#open-music').focus();
+
+  /* ---------------- Stamp ---------------- */
+  const stamp = $('#stamp');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(es => es.forEach(e => {
+      if (e.isIntersecting) { stamp.classList.add('hit'); io.disconnect(); }
+    }), { threshold: 0.6 });
+    io.observe(stamp);
+  }
+
+  /* ---------------- Notes ---------------- */
+  document.querySelectorAll('.note').forEach(n => n.addEventListener('click', () => n.classList.toggle('flipped')));
+
+  /* ---------------- Novel generator ---------------- */
+  const pool = [
+    'Shipper giao gà trễ 5 phút',
+    'Sếp nhắn "em ơi" lúc 9 giờ tối',
+    'Sổ lệch đúng 2.000 đồng',
+    'Con làm đổ ly trà sữa',
+    'Quán gà quen hết đùi',
+    'Bạn thân "seen" không rep',
+    'Điện thoại còn 1% pin lúc đang kể chuyện',
+    'Kẹt xe ở ngã tư 15 phút',
+    'Máy in kẹt giấy ngày chốt sổ',
+    'Trời mưa đúng lúc định đi chơi',
+    'Bút xoá hết mực',
+    'Lỡ tay like ảnh cũ của người yêu cũ'
+  ];
+  const titles = ['Cuốn Theo Chiều Gà', 'Nỗi Buồn Chưa Kết Chuyển', 'Đùi Gà Cuối Cùng', 'Bảng Cân Đối Của Nước Mắt', 'Trăm Năm Cô Đơn Chờ Shipper', 'Những Ngày Sổ Không Cân', 'Mẹ Mìn Không Khóc', 'Bút Xoá Và Định Mệnh'];
+  const moods = [
+    'Trời bỗng tối sầm, gió nổi lên, Chang nhìn ra cửa sổ và hiểu rằng đời người có những phút chờ dài hơn cả một kiếp.',
+    'Mưa không rơi, nhưng lòng Chang thì ướt sũng.',
+    'Chang lặng lẽ mở sổ cái, ghi một bút toán mà cả đời không ai hạch toán nổi: nợ lòng, có nước mắt.',
+    'Cả thành phố vẫn ồn ào, chỉ có trái tim Chang là im lặng như ngày nghỉ lễ.',
+    'Chang cười, nhưng là nụ cười của người đã thấy trước kết cục.'
+  ];
+  const twists = [
+    'Rồi chuyện gì đến cũng đến:',
+    'Chưa kịp lau nước mắt thì',
+    'Số phận vẫn chưa buông tha, vì ngay sau đó',
+    'Và như thể vũ trụ thấy vậy là chưa đủ,'
+  ];
+  const endings = [
+    'Hết tập 1. Tập 2 sẽ được kể vào lúc 11 giờ đêm qua tin nhắn thoại dài 14 phút.',
+    'Cuối cùng Chang đi ăn gà. Mọi thứ lại ổn. Hết.',
+    'Còn tiếp... (khi Chang gặp thêm một chuyện nhỏ nữa).',
+    'Kết thúc mở. Độc giả vui lòng gọi điện cho Chang để nghe bản đầy đủ.'
+  ];
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const lower = (s) => s.charAt(0).toLowerCase() + s.slice(1);
+  let current = [];
+  const eventsEl = $('#events');
+  function newEvents(first) {
+    const copy = pool.filter(e => e !== first); current = first ? [first] : [];
+    while (current.length < 3) current.push(copy.splice(Math.floor(Math.random() * copy.length), 1)[0]);
+    eventsEl.classList.remove('fly');
+    eventsEl.innerHTML = current.map((e, i) => `<span class="event"><b>Sự kiện ${i + 1}</b>${e}</span>`).join('');
+  }
+  function makeNovel() {
+    eventsEl.classList.remove('fly'); void eventsEl.offsetWidth; eventsEl.classList.add('fly');
+    const title = pick(titles);
+    const vol = 27 + Math.floor(Math.random() * 70);
+    const pages = (1000 + Math.floor(Math.random() * 999)).toLocaleString('vi-VN');
+    const text = `Chương 1: ${current[0]}. ${pick(moods)} ${pick(twists)} ${lower(current[1])}. Chương 2 đến Chương 47: ${lower(current[2])}. ${pick(endings)}`;
+    setTimeout(() => {
+      $('#book-title').textContent = title; $('#book-h').textContent = title; $('#book-vol').textContent = vol;
+      $('#book-meta').textContent = `${pages} trang · 3 sự kiện gốc · nước mắt: không giới hạn`;
+      $('#book-text').textContent = text;
+      const book = $('#book'); book.classList.remove('show'); void book.offsetWidth; book.classList.add('show');
+      setTimeout(() => newEvents(), 900);
+    }, reduceMotion ? 0 : 750);
+  }
+  $('#make-novel').addEventListener('click', makeNovel);
+  $('#new-events').addEventListener('click', () => newEvents());
+  newEvents(pool[0]);
+
+  /* ---------------- Mode toggle ---------------- */
+  const modes = {
+    bim: { icon: '🍼', title: 'Chế độ Mẹ bỉm', list: [
+      'Pha sữa lúc 2 giờ sáng mà vẫn tỉnh táo chốt sổ lúc 8 giờ.',
+      'Thuộc lịch tiêm chủng hơn thuộc lịch nộp thuế.',
+      'Một tay bế con, một tay bấm máy tính.'] },
+    min: { icon: '🧋', title: 'Chế độ Mẹ Mìn', list: [
+      'Trà sữa full topping, check-in quán mới mở là có mặt.',
+      '"Đi xíu về liền" = 4 tiếng và 3 quán.',
+      'Có con rồi nhưng vibe chưa bao giờ bàn giao.'] }
+  };
+  const sw = $('#switch');
+  sw.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    const m = b.dataset.mode;
+    sw.classList.toggle('min', m === 'min');
+    sw.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    $('#mode-icon').textContent = modes[m].icon;
+    $('#mode-title').textContent = modes[m].title;
+    $('#mode-list').innerHTML = modes[m].list.map(t => `<li>${t}</li>`).join('');
+  }));
+
+  /* ---------------- Cake ---------------- */
+  const cake = $('#cake'), blow = $('#blow'), voucher = $('#voucher');
+  blow.addEventListener('click', () => {
+    if (cake.classList.contains('out')) {
+      cake.classList.remove('out');
+      blow.textContent = 'Thổi nến 🌬️';
+      voucher.textContent = 'Nến đã thắp lại. Ước thêm một điều nữa đi Chang.';
+      return;
+    }
+    cake.classList.add('out');
+    blow.textContent = 'Thắp nến lại 🕯️';
+    const no = String(Math.floor(Math.random() * 900) + 100);
+    voucher.textContent = `Điều ước đã được ghi sổ ✅ Chứng từ số SN-2026-${no}, chờ vũ trụ thanh toán.`;
+    burst(180);
+    if (!playing) startMusic();
+  });
+})();
+</script>
+</body>
+</html>
